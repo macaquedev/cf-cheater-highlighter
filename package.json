@@ -1,0 +1,11 @@
+{
+  "name": "cf-cheater-highlighter",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "fetch": "node fetch-cheaters.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
