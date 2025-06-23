@@ -3,19 +3,22 @@ name: Update Cheater List
 on:
   schedule:
     # runs at minute 0 of every hour
-    - cron:  '0 * * * *'
-  # allow manual runs too
-  workflow_dispatch: {}
-  
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
 permissions:
-  contents: write    # <— grant write access
+  contents: write    # grant the write permission for GITHUB_TOKEN
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: main
+          persist-credentials: true   # so git push can use the GITHUB_TOKEN
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -31,17 +34,13 @@ jobs:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           CHANNEL_ID:    ${{ secrets.CHANNEL_ID }}
 
-      - name: Show git status
+      - name: Commit & push cheaters.json if changed
         run: |
-          git status
-          git diff
-
-      - name: Commit and push changes
-        run: |
-          git config user.name "github-actions[bot]"
+          git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add cheaters.json
-          git diff --quiet || git commit -m "Update cheaters list"
+          # Only commit if there are staged changes
+          git diff --cached --quiet || git commit -m "Update cheater list"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
