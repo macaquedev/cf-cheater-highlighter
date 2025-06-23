@@ -14,9 +14,10 @@ A tiny Chrome extension that highlights Codeforces users flagged as cheaters. Wr
 
 ## 2. Install in Chrome
 
-1. In Chrome, go to `chrome://extensions/`  
-2. Turn on **Developer mode** (toggle top-right)  
-3. Click **Load unpacked**, select the folder you just unzipped (the one with `manifest.json`).
+1. In Chrome, open `chrome://extensions/`.  
+2. Turn on **Developer mode** (toggle at top-right).  
+3. Drag **cf-cheater-highlighter.zip** from your Downloads folder onto the extensions page.  
+4. Confirm the “Add extension” prompt.
 
 ---
 
