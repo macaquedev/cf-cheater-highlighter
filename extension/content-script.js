@@ -1,31 +1,57 @@
+const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheaters.json';
+
 (async () => {
-  // 1) Fetch the cheater list
-  let cheaters = [];
-  try {
-    const resp = await fetch('https://macaquedev.github.io/cf-cheater-highlighter/cheaters.json');         // Fetch API :contentReference[oaicite:4]{index=4}
-    const data = await resp.json();
-    cheaters = new Set(data.cheaters || []);
-  } catch (e) {
-    console.error('Failed to load cheater list', e);
-    return;
-  }
-
-  // 2) Find all profile links
-  const anchors = document.querySelectorAll('a[href^="/profile/"]');           // CSS attribute selector :contentReference[oaicite:5]{index=5} :contentReference[oaicite:6]{index=6}
-
-  anchors.forEach(a => {
-    // Extract the username from the URL: "/profile/{username}"
-    const parts = a.getAttribute('href').split('/');
-    const user  = parts[2];
-    if (!user) return;
-
-    // 3) If this user is in the cheater set, highlight
-    if (cheaters.has(user)) {
-      a.classList.add('cf-cheater');
-      // Avoid appending multiple times
-      if (!a.textContent.includes(': CHEATER')) {
+  // Highlight cheaters
+  function markCheaters(cheaterSet) {
+    if (cheaterSet == null) return;
+    const anchors = document.querySelectorAll('a[href^="/profile/"]');
+    anchors.forEach(a => {
+      const parts = a.getAttribute('href').split('/');
+      const user = parts[2];
+      if (!user) return;
+      if (cheaterSet.has(user) && !a.classList.contains('cf-cheater')) {
+        a.classList.add('cf-cheater');
         a.textContent = `${a.textContent}: CHEATER`;
       }
+    });
+  }
+
+  function getCachedCheaters() {
+    try {
+      const cached = localStorage.getItem('cf-cheater-list');
+      if (cached) {
+        const cachedData = JSON.parse(cached);
+        const cachedCheaters = new Set(cachedData.cheaters || []);
+        return cachedCheaters;
+      }
+    } catch (e) {
+      return null;
     }
-  });
+  }
+
+  async function getCheaterData() {
+    try {
+      const resp = await fetch(cheaterLink);
+      const data = await resp.json();
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  try {
+    const cachedCheaters = getCachedCheaters();
+    if (cachedCheaters) markCheaters(cachedCheaters);
+
+    const data = await getCheaterData();
+    if (data) {
+      const cheaters = new Set(data.cheaters);
+      if (cheaters != cachedCheaters) {
+        localStorage.setItem('cf-cheater-list', JSON.stringify(data));
+        markCheaters(cheaters);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load cheaters', e);
+  }
 })();
