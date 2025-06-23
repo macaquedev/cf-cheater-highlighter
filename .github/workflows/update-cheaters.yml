@@ -31,6 +31,11 @@ jobs:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           CHANNEL_ID:    ${{ secrets.CHANNEL_ID }}
 
+      - name: Show git status
+        run: |
+          git status
+          git diff
+
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
