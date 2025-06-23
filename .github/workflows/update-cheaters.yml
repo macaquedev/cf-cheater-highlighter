@@ -6,6 +6,9 @@ on:
     - cron:  '0 * * * *'
   # allow manual runs too
   workflow_dispatch: {}
+  
+permissions:
+  contents: write    # <— grant write access
 
 jobs:
   build:
