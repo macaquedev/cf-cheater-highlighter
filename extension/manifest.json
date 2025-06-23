@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "CF Cheater Highlighter",
+  "version": "1.0",
+  "description": "Highlights Codeforces handles marked as cheaters.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://your-domain.com/cheaters.json"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://codeforces.com/*"],
+      "js": ["content-script.js"],
+      "css": ["styles.css"]
+    }
+  ]
+}
