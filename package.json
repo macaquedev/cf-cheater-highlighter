@@ -6,6 +6,11 @@
     "fetch": "node fetch-cheaters.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "discord.js": "^14.20.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "node-cron": "^4.1.1",
     "node-fetch": "^2.6.7"
   }
 }
