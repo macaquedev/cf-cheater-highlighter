@@ -131,6 +131,15 @@ const Search = ({ user }) => {
     }
   };
 
+  // Helper to delete all reports for a username
+  const deleteAllReportsForUsername = async (username) => {
+    const reportsRef = collection(db, 'reports');
+    const q = query(reportsRef, where('username', '==', username.toLowerCase()));
+    const snapshot = await getDocs(q);
+    const deletePromises = snapshot.docs.map((docu) => deleteDoc(docu.ref));
+    await Promise.all(deletePromises);
+  };
+
   // Open confirmation dialog for move to pending
   const handleMoveToPending = (cheaterId, cheaterUsername, cheaterEvidence) => {
     setMoveTarget({ id: cheaterId, username: cheaterUsername, evidence: cheaterEvidence });
@@ -142,6 +151,7 @@ const Search = ({ user }) => {
     if (!moveTarget) return;
     setActionLoading(true);
     try {
+      await deleteAllReportsForUsername(moveTarget.username);
       await addDoc(collection(db, 'reports'), {
         username: moveTarget.username.toLowerCase(),
         evidence: moveTarget.evidence,
@@ -171,6 +181,7 @@ const Search = ({ user }) => {
     if (!deleteTarget) return;
     setActionLoading(true);
     try {
+      await deleteAllReportsForUsername(deleteTarget.username);
       await deleteDoc(doc(db, 'cheaters', deleteTarget.id));
       showMessage(`User "${deleteTarget.username}" has been completely removed from the database.`, 'success');
       fetchAllCheaters();
