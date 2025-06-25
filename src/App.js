@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Box, Flex, Button, Heading, Text, VStack, HStack } from '@chakra-ui/react';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ColorModeProvider, ColorModeButton } from './components/ui/color-mode';
 import ReportCheaters from './pages/ReportCheaters';
 import Search from './pages/Search';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
-function Navbar({ user, onLogout }) {
+function Navbar({ user, onLogout, pendingCount }) {
   return (
     <Box bg="white" _dark={{ bg: "gray.800" }} shadow="md" px={6} py={4}>
       <Flex justify="space-between" align="center" maxW="6xl" mx="auto">
@@ -20,7 +21,9 @@ function Navbar({ user, onLogout }) {
           <Button variant="ghost" as="a" href="/search">Search</Button>
           {user && (
             <>
-              <Button variant="ghost" as="a" href="/admin">Review reports</Button>
+              <Button variant="ghost" as="a" href="/admin">
+                Review reports{typeof pendingCount === 'number' ? ` (${pendingCount})` : ''}
+              </Button>
               <Button variant="outline" size="sm" onClick={onLogout}>Logout</Button>
             </>
           )}
@@ -34,6 +37,7 @@ function Navbar({ user, onLogout }) {
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -42,6 +46,19 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setPendingCount(null);
+      return;
+    }
+    const fetchPending = async () => {
+      const q = query(collection(db, 'reports'), where('status', '==', 'pending'));
+      const snapshot = await getDocs(q);
+      setPendingCount(snapshot.size);
+    };
+    fetchPending();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -63,7 +80,7 @@ function App() {
     <ColorModeProvider>
       <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }}>
         <Router>
-          <Navbar user={user} onLogout={handleLogout} />
+          <Navbar user={user} onLogout={handleLogout} pendingCount={pendingCount} />
           <Box as="main" py={8}>
             <Routes>
               <Route path="/" element={<Home user={user} />} />
