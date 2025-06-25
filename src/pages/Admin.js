@@ -199,16 +199,6 @@ const Admin = () => {
               }}
             >
               <Text>{message.text}</Text>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                position="absolute" 
-                right="8px" 
-                top="8px"
-                onClick={() => setMessage(null)}
-              >
-                ×
-              </Button>
             </Box>
           )}
           
