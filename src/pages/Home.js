@@ -12,7 +12,7 @@ function Home({ user }) {
             CF Cheater Database
           </Heading>
           <Text fontSize="xl" color="gray.600" _dark={{ color: "gray.300" }} maxW="2xl">
-            Help maintain the integrity of competitive programming by reporting and tracking Codeforces cheaters who used AI/GPT <b>after 14/09/2024</b> (the AI rule change date).
+            Help maintain the integrity of competitive programming by reporting and tracking Codeforces cheaters.
           </Text>
         </VStack>
 
