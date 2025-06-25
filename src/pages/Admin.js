@@ -34,7 +34,7 @@ const Admin = () => {
     // eslint-disable-next-line
   }, [user]);
 
-  const fetchPendingReports = async () => {
+  const fetchPendingReports = async (stayAtIndex = null) => {
     setLoadingReports(true);
     try {
       const q = query(collection(db, 'reports'), where('status', '==', 'pending'));
@@ -45,7 +45,11 @@ const Admin = () => {
       });
       console.log('Fetched reports:', reports); // Debug log
       setPendingReports(reports);
-      setCurrentIndex(0);
+      if (stayAtIndex !== null) {
+        setCurrentIndex(Math.min(stayAtIndex, reports.length - 1));
+      } else {
+        setCurrentIndex(0);
+      }
     } catch (error) {
       console.error('Error fetching reports:', error); // Debug log
       setMessage({ type: 'error', text: 'Failed to fetch reports.' });
@@ -122,7 +126,7 @@ const Admin = () => {
         : 'Report accepted and user added to cheaters.';
       
       setMessage({ type: 'success', text: messageText });
-      fetchPendingReports();
+      fetchPendingReports(currentIndex);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to accept report.' });
     }
@@ -134,7 +138,7 @@ const Admin = () => {
     try {
       await updateDoc(doc(db, 'reports', report.id), { status: 'declined' });
       setMessage({ type: 'info', text: 'Report declined.' });
-      fetchPendingReports();
+      fetchPendingReports(currentIndex);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to decline report.' });
     }
