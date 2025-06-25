@@ -114,9 +114,9 @@ const ReportCheaters = ({ user }) => {
           fontSize="sm"
           _dark={{ bg: "yellow.900", color: "yellow.100", borderColor: "yellow.700" }}
         >
-          ⚠️ Please report users <u>ONLY</u> if they cheated on Codeforces <b>after <span style={{whiteSpace: 'nowrap'}}>14/09/2024</span></b>.<br/>
+          ⚠️ If you are reporting a cheater whom you suspect of AI use, <u>ONLY</u> report them if their AI submissions were made <b>after <span style={{whiteSpace: 'nowrap'}}>14/09/2024</span></b>.<br/>
           <span style={{fontWeight: 400}}>
-            <i>This is the date when the new AI-assisted cheating rules came into effect. Do <b>not</b> report users for actions before this date, regardless of evidence.</i>
+            <i>This is the date when the new AI-assisted cheating rules came into effect. Do <b>not</b> report users for AI use before this date.</i>
           </span>
         </Box>
 
