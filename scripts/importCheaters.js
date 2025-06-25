@@ -1,16 +1,25 @@
+require('dotenv').config();
+
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc } = require('firebase/firestore');
 
-// Firebase configuration
+// Firebase configuration using only environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCHcC1HAgcr6fwmu3FFh9SjSAyyAFmG7lo",
-  authDomain: "cf-cheater-database.firebaseapp.com",
-  projectId: "cf-cheater-database",
-  storageBucket: "cf-cheater-database.firebasestorage.app",
-  messagingSenderId: "640477694144",
-  appId: "1:640477694144:web:af9f2a7ccacc3fbd5f8525",
-  measurementId: "G-1KD3E9TVPB"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
+
+// Warn if any config is missing
+for (const [key, value] of Object.entries(firebaseConfig)) {
+  if (!value) {
+    console.warn(`Missing Firebase config value for: ${key}`);
+  }
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

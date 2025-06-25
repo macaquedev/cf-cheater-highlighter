@@ -197,7 +197,21 @@ const Admin = () => {
                 color: message.type === 'success' ? 'green.200' : message.type === 'error' ? 'red.200' : 'blue.200',
                 borderColor: message.type === 'success' ? 'green.700' : message.type === 'error' ? 'red.700' : 'blue.700'
               }}
+              position="relative"
             >
+              <Button
+                position="absolute"
+                top={2}
+                right={2}
+                size="sm"
+                variant="ghost"
+                onClick={() => setMessage(null)}
+                color="inherit"
+                _hover={{ bg: 'rgba(0,0,0,0.1)' }}
+                _dark={{ _hover: { bg: 'rgba(255,255,255,0.1)' } }}
+              >
+                ×
+              </Button>
               <Text>{message.text}</Text>
             </Box>
           )}
