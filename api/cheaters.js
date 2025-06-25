@@ -8,9 +8,6 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-export default async function handler(req, res) {
-  const snapshot = await db.collection('cheaters').get();
-  const cheaters = [];
-  snapshot.forEach(doc => cheaters.push(doc.data().username));
-  res.status(200).json({ cheaters });
+export default function handler(req, res) {
+  res.status(200).json({ hello: "world" });
 }
