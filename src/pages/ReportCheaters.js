@@ -57,11 +57,12 @@ const ReportCheaters = ({ user }) => {
         return;
       }
 
-      // Check if a report for this user already exists (any status)
+      // Check if a pending report for this user already exists
       const reportsRef = collection(db, 'reports');
       const existingReportQuery = query(
         reportsRef,
-        where('username', '==', normalizedUsername)
+        where('username', '==', normalizedUsername),
+        where('status', '==', 'pending')
       );
       const existingReportSnapshot = await getDocs(existingReportQuery);
       if (!existingReportSnapshot.empty) {

@@ -136,7 +136,7 @@ const Admin = () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
     try {
-      await updateDoc(doc(db, 'reports', report.id), { status: 'declined' });
+      await deleteDoc(doc(db, 'reports', report.id));
       setMessage({ type: 'info', text: 'Report declined.' });
       fetchPendingReports(currentIndex);
     } catch (error) {
