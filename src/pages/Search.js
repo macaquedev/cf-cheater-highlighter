@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Input, Heading, VStack, Text, HStack, Table, Dialog, Portal } from '@chakra-ui/react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
@@ -18,6 +18,22 @@ const Search = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState('');
+
+  // State for delete confirmation modal
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, username }
+  const cancelRef = useRef();
+  // State for move to pending confirmation modal
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTarget, setMoveTarget] = useState(null); // { id, username, evidence }
+
+  // Auto-dismiss message after 15 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   // Fetch all cheaters for admin table
   useEffect(() => {
@@ -115,41 +131,55 @@ const Search = ({ user }) => {
     }
   };
 
-  const handleMoveToPending = async (cheaterId, cheaterUsername, cheaterEvidence) => {
+  // Open confirmation dialog for move to pending
+  const handleMoveToPending = (cheaterId, cheaterUsername, cheaterEvidence) => {
+    setMoveTarget({ id: cheaterId, username: cheaterUsername, evidence: cheaterEvidence });
+    setMoveDialogOpen(true);
+  };
+
+  // Actually move after confirmation
+  const confirmMoveToPending = async () => {
+    if (!moveTarget) return;
     setActionLoading(true);
     try {
-      // Add to reports collection as pending
       await addDoc(collection(db, 'reports'), {
-        username: cheaterUsername.toLowerCase(),
-        evidence: cheaterEvidence,
+        username: moveTarget.username.toLowerCase(),
+        evidence: moveTarget.evidence,
         status: 'pending',
         reportedAt: new Date(),
       });
-      
-      // Remove from cheaters collection
-      await deleteDoc(doc(db, 'cheaters', cheaterId));
-      
-      showMessage(`User "${cheaterUsername}" has been moved back to pending review.`, 'success');
-      fetchAllCheaters(); // Refresh the table
+      await deleteDoc(doc(db, 'cheaters', moveTarget.id));
+      showMessage(`User "${moveTarget.username}" has been moved back to pending review.`, 'success');
+      fetchAllCheaters();
     } catch (error) {
       showMessage('Error moving user to pending: ' + error.message, 'error');
     } finally {
       setActionLoading(false);
+      setMoveDialogOpen(false);
+      setMoveTarget(null);
     }
   };
 
-  const handleRemoveFromDatabase = async (cheaterId, cheaterUsername) => {
+  // Open confirmation dialog
+  const handleRemoveFromDatabase = (cheaterId, cheaterUsername) => {
+    setDeleteTarget({ id: cheaterId, username: cheaterUsername });
+    setDeleteDialogOpen(true);
+  };
+
+  // Actually delete after confirmation
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     setActionLoading(true);
     try {
-      // Remove from cheaters collection
-      await deleteDoc(doc(db, 'cheaters', cheaterId));
-      
-      showMessage(`User "${cheaterUsername}" has been completely removed from the database.`, 'success');
-      fetchAllCheaters(); // Refresh the table
+      await deleteDoc(doc(db, 'cheaters', deleteTarget.id));
+      showMessage(`User "${deleteTarget.username}" has been completely removed from the database.`, 'success');
+      fetchAllCheaters();
     } catch (error) {
       showMessage('Error removing user: ' + error.message, 'error');
     } finally {
       setActionLoading(false);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -179,19 +209,6 @@ const Search = ({ user }) => {
               }}
               position="relative"
             >
-              <Button
-                position="absolute"
-                top={2}
-                right={2}
-                size="sm"
-                variant="ghost"
-                onClick={() => setMessage(null)}
-                color="inherit"
-                _hover={{ bg: 'rgba(0,0,0,0.1)' }}
-                _dark={{ _hover: { bg: 'rgba(255,255,255,0.1)' } }}
-              >
-                ×
-              </Button>
               <Text>{message.text}</Text>
             </Box>
           )}
@@ -346,6 +363,52 @@ const Search = ({ user }) => {
             </Dialog.Positioner>
           </Portal>
         </Dialog.Root>
+
+        {/* Delete Confirmation Modal using Dialog */}
+        <Dialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} placement="center">
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content>
+                <Dialog.Header>
+                  <Dialog.Title>Delete User</Dialog.Title>
+                </Dialog.Header>
+                <Dialog.Body>
+                  <Dialog.Description>
+                    Are you sure you want to delete this user? This action cannot be undone.
+                  </Dialog.Description>
+                </Dialog.Body>
+                <Dialog.Footer>
+                  <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                  <Button colorScheme="red" onClick={confirmDelete} ml={3} isLoading={actionLoading}>Delete</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+
+        {/* Move to Pending Confirmation Modal using Dialog */}
+        <Dialog.Root open={moveDialogOpen} onOpenChange={setMoveDialogOpen} placement="center">
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content>
+                <Dialog.Header>
+                  <Dialog.Title>Move User to Pending</Dialog.Title>
+                </Dialog.Header>
+                <Dialog.Body>
+                  <Dialog.Description>
+                    Are you sure you want to move this user back to pending review? This action will remove them from the cheaters list and add them to pending reports.
+                  </Dialog.Description>
+                </Dialog.Body>
+                <Dialog.Footer>
+                  <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>Cancel</Button>
+                  <Button colorScheme="orange" onClick={confirmMoveToPending} ml={3} isLoading={actionLoading}>Move to Pending</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
       </Box>
     );
   }
@@ -370,19 +433,6 @@ const Search = ({ user }) => {
             }}
             position="relative"
           >
-            <Button
-              position="absolute"
-              top={2}
-              right={2}
-              size="sm"
-              variant="ghost"
-              onClick={() => setMessage(null)}
-              color="inherit"
-              _hover={{ bg: 'rgba(0,0,0,0.1)' }}
-              _dark={{ _hover: { bg: 'rgba(255,255,255,0.1)' } }}
-            >
-              ×
-            </Button>
             <Text>{message.text}</Text>
           </Box>
         )}
