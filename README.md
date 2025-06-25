@@ -1,3 +1,11 @@
+# ⚠️ IMPORTANT: Reporting Rule (AI Cheating Policy Change) ⚠️
+
+**Please report users ONLY if they cheated on Codeforces _after_ 14/09/2024.**
+
+> _This is the date when the new AI-assisted cheating rules came into effect. Do **not** report users for actions before this date, regardless of evidence._
+
+---
+
 # CF Cheater Database & Highlighter
 
 A comprehensive solution for managing and highlighting Codeforces cheaters. This project includes:

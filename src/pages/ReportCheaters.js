@@ -1,5 +1,5 @@
 import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import RichTextEditor from '../components/RichTextEditor';
@@ -10,6 +10,14 @@ const ReportCheaters = ({ user }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [message, setMessage] = useState(null);
+
+  // Auto-dismiss message after 15 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,7 +89,27 @@ const ReportCheaters = ({ user }) => {
         <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">
           Report a Cheater
         </Heading>
-        
+
+        {/* AI Rule Change Notice */}
+        <Box
+          bg="yellow.50"
+          color="yellow.800"
+          borderWidth={1}
+          borderColor="yellow.200"
+          rounded="md"
+          px={4}
+          py={3}
+          mb={6}
+          fontWeight="semibold"
+          fontSize="sm"
+          _dark={{ bg: "yellow.900", color: "yellow.100", borderColor: "yellow.700" }}
+        >
+          ⚠️ Please report users <u>ONLY</u> if they cheated on Codeforces <b>after <span style={{whiteSpace: 'nowrap'}}>14/09/2024</span></b>.<br/>
+          <span style={{fontWeight: 400}}>
+            <i>This is the date when the new AI-assisted cheating rules came into effect. Do <b>not</b> report users for actions before this date, regardless of evidence.</i>
+          </span>
+        </Box>
+
         {message && (
           <Box 
             p={4} 
@@ -122,19 +150,6 @@ const ReportCheaters = ({ user }) => {
             }}
             position="relative"
           >
-            <Button
-              position="absolute"
-              top={2}
-              right={2}
-              size="sm"
-              variant="ghost"
-              onClick={() => setMessage(null)}
-              color="inherit"
-              _hover={{ bg: 'rgba(0,0,0,0.1)' }}
-              _dark={{ _hover: { bg: 'rgba(255,255,255,0.1)' } }}
-            >
-              ×
-            </Button>
             <Text>{message.text}</Text>
           </Box>
         )}

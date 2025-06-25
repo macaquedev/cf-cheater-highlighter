@@ -7,17 +7,17 @@ function Home({ user }) {
     <Container maxW="4xl" py={8}>
       <VStack spacing={12} textAlign="center">
         {/* Hero Section */}
-        <VStack spacing={6}>
+        <VStack spacing={6} mb={4}>
           <Heading size="2xl" color="blue.600" _dark={{ color: "blue.400" }} fontWeight="bold">
             CF Cheater Database
           </Heading>
           <Text fontSize="xl" color="gray.600" _dark={{ color: "gray.300" }} maxW="2xl">
-            Help maintain the integrity of competitive programming by reporting and tracking Codeforces cheaters
+            Help maintain the integrity of competitive programming by reporting and tracking Codeforces cheaters who used AI/GPT <b>after 14/09/2024</b> (the AI rule change date).
           </Text>
         </VStack>
 
         {/* Quick Actions */}
-        <Box w="full">
+        <Box w="full" mt={2}>
           <Flex gap={4} justify="center" wrap="wrap" maxW="2xl" mx="auto">
             <Box
               bg="white"
@@ -99,7 +99,7 @@ function Home({ user }) {
         )}
 
         {/* Footer Info */}
-        <Box textAlign="center" color="gray.500" _dark={{ color: "gray.400" }} fontSize="sm">
+        <Box textAlign="center" color="gray.500" _dark={{ color: "gray.400" }} fontSize="sm" mt={8}>
           <Text>
             This database helps maintain fair competition on Codeforces by tracking verified cases of cheating.
           </Text>
