@@ -98,6 +98,16 @@ function Home({ user }) {
           </Box>
         )}
 
+        {/* Chrome Extension Notice */}
+        <Box w="full" maxW="2xl" mx="auto" mt={12} bg="blue.50" _dark={{ bg: "blue.900" }} borderRadius="md" px={4} py={3} border="1px solid" borderColor="blue.200" _dark={{ borderColor: "blue.700" }}>
+          <Text fontSize="md" color="blue.800" _dark={{ color: "blue.200" }}>
+            We also provide a <b>Chrome extension</b> for highlighting cheaters directly on Codeforces. <br />
+            <a href="https://github.com/macaquedev/cf-cheater-highlighter" target="_blank" rel="noopener noreferrer" style={{ color: '#2b6cb0', textDecoration: 'underline' }}>
+              Get it here on GitHub
+            </a>.
+          </Text>
+        </Box>
+
         {/* Footer Info */}
         <Box textAlign="center" color="gray.500" _dark={{ color: "gray.400" }} fontSize="sm" mt={8}>
           <Text>
