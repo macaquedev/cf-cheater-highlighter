@@ -29,8 +29,8 @@ const ReportCheaters = ({ user }) => {
     setIsSubmitting(true);
     setIsChecking(true);
     try {
-      // Convert username to lowercase for case-insensitive storage
-      const normalizedUsername = username.trim().toLowerCase();
+      // Convert username to lowercase and remove all whitespace for case-insensitive, space-insensitive storage
+      const normalizedUsername = username.trim().replace(/\s+/g, '').toLowerCase();
       
       // Check if user is already marked as a cheater
       const cheatersRef = collection(db, 'cheaters');
