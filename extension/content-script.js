@@ -9,7 +9,7 @@ const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheater
       const parts = a.getAttribute('href').split('/');
       const user = parts[2];
       if (!user) return;
-      if (cheaterSet.has(user) && !a.classList.contains('cf-cheater')) {
+      if (cheaterSet.has(user.toLowerCase()) && !a.classList.contains('cf-cheater')) {
         a.classList.add('cf-cheater');
         a.textContent = `${a.textContent}: CHEATER`;
       }
@@ -21,7 +21,7 @@ const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheater
       const cached = localStorage.getItem('cf-cheater-list');
       if (cached) {
         const cachedData = JSON.parse(cached);
-        const cachedCheaters = new Set(cachedData.cheaters || []);
+        const cachedCheaters = new Set((cachedData.cheaters || []).map(u => u.toLowerCase()));
         return cachedCheaters;
       }
     } catch (e) {
@@ -33,6 +33,7 @@ const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheater
     try {
       const resp = await fetch(cheaterLink);
       const data = await resp.json();
+      data.cheaters = (data.cheaters || []).map(u => u.toLowerCase());
       return data;
     } catch (e) {
       return null;
