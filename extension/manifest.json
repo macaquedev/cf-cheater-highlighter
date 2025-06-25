@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "CF Cheater Highlighter",
+  "version": "1.0.0",
+  "description": "Highlights Codeforces handles marked as cheaters.",
+  "permissions": [],
+  "host_permissions": [
+    "https://macaquedev.github.io/cf-cheater-highlighter/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://codeforces.com/*"],
+      "js": ["content-script.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{27fc8722-82bf-4cbe-81da-90dd13fb5b01}", 
+      "strict_min_version": "109.0"
+    }
+  }
+}

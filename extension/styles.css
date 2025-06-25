@@ -1,0 +1,4 @@
+/* Light-red background for flagged handles */
+.cf-cheater {
+  background-color: rgba(255, 0, 0, 0.2) !important;
+}

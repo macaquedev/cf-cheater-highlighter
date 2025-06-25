@@ -1,0 +1,212 @@
+import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/react';
+import { useState } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import RichTextEditor from '../components/RichTextEditor';
+
+const ReportCheaters = ({ user }) => {
+  const [username, setUsername] = useState('');
+  const [evidence, setEvidence] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!username.trim() || !evidence.trim()) {
+      setMessage({ type: 'error', text: 'Please fill in all fields.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setIsChecking(true);
+    try {
+      // Convert username to lowercase for case-insensitive storage
+      const normalizedUsername = username.trim().toLowerCase();
+      
+      // Check if user is already marked as a cheater
+      const cheatersRef = collection(db, 'cheaters');
+      const cheaterQuery = query(cheatersRef, where('username', '==', normalizedUsername));
+      const cheaterSnapshot = await getDocs(cheaterQuery);
+      
+      if (!cheaterSnapshot.empty) {
+        setMessage({ 
+          type: 'error', 
+          text: `User "${username}" is already marked as a cheater in the database. No additional reports are needed.` 
+        });
+        setIsSubmitting(false);
+        setIsChecking(false);
+        return;
+      }
+      
+      // Submit the new report first
+      await addDoc(collection(db, 'reports'), {
+        username: normalizedUsername,
+        evidence: evidence.trim(),
+        status: 'pending',
+        reportedAt: new Date(),
+      });
+      
+      // Check if there are already pending reports for this user (informational only)
+      const reportsRef = collection(db, 'reports');
+      const reportQuery = query(
+        reportsRef, 
+        where('username', '==', normalizedUsername),
+        where('status', '==', 'pending')
+      );
+      const reportSnapshot = await getDocs(reportQuery);
+      
+      if (reportSnapshot.size > 1) {
+        setMessage({ 
+          type: 'info', 
+          text: `Your report for "${username}" has been submitted and is now pending review. Please note that there are already ${reportSnapshot.size - 1} other pending report(s) for this user. Additional reports help moderators review the case more thoroughly.` 
+        });
+      } else {
+        setMessage({ type: 'success', text: `User "${username}" has been reported successfully!` });
+      }
+      
+      setUsername('');
+      setEvidence('');
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to submit report. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <Box maxW="2xl" mx="auto" px={6}>
+      <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md">
+        <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">
+          Report a Cheater
+        </Heading>
+        
+        {message && (
+          <Box 
+            p={4} 
+            mb={6} 
+            rounded="md" 
+            bg={
+              message.type === 'success' ? 'green.100' : 
+              message.type === 'warning' ? 'yellow.100' : 
+              message.type === 'info' ? 'blue.100' :
+              'red.100'
+            }
+            color={
+              message.type === 'success' ? 'green.800' : 
+              message.type === 'warning' ? 'yellow.800' : 
+              message.type === 'info' ? 'blue.800' :
+              'red.800'
+            }
+            borderWidth={1}
+            borderColor={
+              message.type === 'success' ? 'green.200' : 
+              message.type === 'warning' ? 'yellow.200' : 
+              message.type === 'info' ? 'blue.200' :
+              'red.200'
+            }
+            _dark={{
+              bg: message.type === 'success' ? 'green.900' : 
+                  message.type === 'warning' ? 'yellow.900' : 
+                  message.type === 'info' ? 'blue.900' :
+                  'red.900',
+              color: message.type === 'success' ? 'green.200' : 
+                     message.type === 'warning' ? 'yellow.200' : 
+                     message.type === 'info' ? 'blue.200' :
+                     'red.200',
+              borderColor: message.type === 'success' ? 'green.700' : 
+                          message.type === 'warning' ? 'yellow.700' : 
+                          message.type === 'info' ? 'blue.700' :
+                          'red.700'
+            }}
+          >
+            <Text>{message.text}</Text>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              position="absolute" 
+              right="8px" 
+              top="8px"
+              onClick={() => setMessage(null)}
+            >
+              ×
+            </Button>
+          </Box>
+        )}
+
+        {/* Admin notice */}
+        {user && (
+          <Box 
+            display="flex"
+            alignItems="center"
+            gap={3}
+            p={4}
+            mb={6}
+            rounded="md"
+            bg="blue.50"
+            color="blue.800"
+            borderWidth={1}
+            borderColor="blue.200"
+            borderLeftWidth={6}
+            borderLeftColor="blue.400"
+            _dark={{ bg: "blue.900", color: "blue.200", borderColor: "blue.700", borderLeftColor: "blue.300" }}
+          >
+            <Box as="span" fontSize="2xl" mr={2} aria-label="Admin">
+              ⚡
+            </Box>
+            <Box flex="1">
+              <Text fontSize="md" fontWeight="semibold" mb={1}>Admin Notice</Text>
+              <Text fontSize="sm">
+                You can review and manage reports in the{' '}
+                <Link href="/admin" color="blue.600" _dark={{ color: "blue.300" }} fontWeight="semibold" textDecoration="underline" _hover={{ color: 'blue.800', _dark: { color: 'blue.100' } }}>
+                  Admin Panel
+                </Link>
+                .
+              </Text>
+            </Box>
+          </Box>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <VStack gap={5} align="stretch">
+            <Box>
+              <label htmlFor="username" style={{ color: 'inherit' }}>Codeforces Username</label>
+              <Input
+                id="username"
+                placeholder="Enter username (case-insensitive)"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                mt={1}
+              />
+            </Box>
+            
+            <Box>
+              <label htmlFor="evidence" style={{ color: 'inherit' }}>Evidence</label>
+              <RichTextEditor
+                value={evidence}
+                onChange={setEvidence}
+                placeholder="Enter evidence with formatting options above"
+                rows={4}
+              />
+            </Box>
+            
+            <Button 
+              colorScheme="blue" 
+              type="submit" 
+              w="full" 
+              size="lg"
+              isLoading={isSubmitting || isChecking}
+              loadingText={isChecking ? "Checking..." : "Submitting..."}
+            >
+              Submit Report
+            </Button>
+          </VStack>
+        </form>
+      </Box>
+    </Box>
+  );
+};
+
+export default ReportCheaters; 

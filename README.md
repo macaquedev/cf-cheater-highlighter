@@ -1,70 +1,148 @@
-# Getting Started with Create React App
+# CF Cheater Database & Highlighter
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive solution for managing and highlighting Codeforces cheaters. This project includes:
 
-## Available Scripts
+- **Web Application**: React-based database for reporting and managing cheaters
+- **Chrome Extension**: Highlights cheaters on Codeforces pages
+- **Import Scripts**: Tools to import cheaters from various sources
 
-In the project directory, you can run:
+## 🌐 Web Application
 
-### `npm start`
+A React web app built with Chakra UI v3 and Firebase for:
+- Reporting cheaters with evidence
+- Admin review and approval system
+- Search and browse cheaters
+- User authentication
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Features
+- **Report Cheaters**: Submit reports with rich text evidence
+- **Admin Panel**: Review and approve/decline reports
+- **Search**: Find cheaters with filtering and evidence display
+- **Dark Mode**: Full dark mode support
+- **Responsive Design**: Works on all devices
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Tech Stack
+- React 19
+- Chakra UI v3
+- Firebase (Firestore + Auth)
+- React Router DOM
 
-### `npm test`
+## 🔌 Chrome Extension
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+A browser extension that highlights cheaters on Codeforces pages.
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+#### Chrome
+1. Download the latest release from [releases page](https://github.com/macaquedev/cf-cheater-highlighter/releases/latest)
+2. Extract the ZIP file
+3. Go to `chrome://extensions/`
+4. Enable "Developer mode"
+5. Click "Load unpacked" and select the `extension` folder
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+#### Firefox (Temporary)
+1. Go to `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on"
+3. Select `extension/manifest.json`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🚀 Quick Start
 
-### `npm run eject`
+### Web App Development
+```bash
+npm install
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Import Cheaters
+```bash
+npm run import-cheaters
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Build for Production
+```bash
+npm run build
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 📁 Project Structure
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```
+cf-cheater-database/
+├── src/                    # React web application
+│   ├── components/        # React components
+│   ├── pages/            # Page components
+│   ├── utils/            # Utility functions
+│   └── firebase.js       # Firebase configuration
+├── extension/            # Chrome extension
+│   ├── manifest.json     # Extension manifest
+│   └── styles.css        # Extension styles
+├── scripts/              # Import and utility scripts
+│   └── importCheaters.js # Import script for cheaters
+├── cheaters.json         # Cheaters data file
+└── fetch-cheaters.js     # Fetch script for cheaters
+```
 
-## Learn More
+## 🔧 Configuration
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Firebase Setup
+The app uses Firebase for:
+- **Firestore**: Database for cheaters and reports
+- **Authentication**: Admin login system
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Environment variables (optional):
+```
+REACT_APP_FIREBASE_API_KEY=your_api_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
+REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+REACT_APP_FIREBASE_APP_ID=your_app_id
+REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
 
-### Code Splitting
+## 🚀 Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Vercel (Recommended)
+1. Push to GitHub
+2. Connect repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy automatically
 
-### Analyzing the Bundle Size
+### Manual Deployment
+```bash
+npm run build
+# Deploy the 'build' folder to your hosting service
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 📊 Data Management
 
-### Making a Progressive Web App
+### Importing Cheaters
+Use the import script to add cheaters from external sources:
+```bash
+npm run import-cheaters
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The script will:
+- Fetch cheaters from the GitHub repository
+- Check for duplicates
+- Add new cheaters to the database
+- Clean up pending reports for accepted cheaters
 
-### Advanced Configuration
+### Chrome Extension Data
+The extension uses the same `cheaters.json` file that's updated via the import script.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🤝 Contributing
 
-### Deployment
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 📄 License
 
-### `npm run build` fails to minify
+WTFPL License - See LICENSE file for details
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 🙏 Acknowledgments
+
+- Original Chrome extension by [macaquedev](https://github.com/macaquedev)
+- Built with React and Chakra UI
+- Powered by Firebase
