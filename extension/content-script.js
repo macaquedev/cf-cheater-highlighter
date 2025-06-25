@@ -1,4 +1,4 @@
-const cheaterLink = 'https://cf-cheater-database.vercel.app/api/cheaters';
+const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheaters.json';
 
 (async () => {
   // Highlight cheaters
