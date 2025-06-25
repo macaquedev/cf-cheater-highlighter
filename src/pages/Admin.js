@@ -317,7 +317,16 @@ const Admin = () => {
                     <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
                       Username:
                     </Text>
-                    <Text mb={4}>{pendingReports[currentIndex]?.username}</Text>
+                    <Text mb={4}>
+                      <a
+                        href={`https://codeforces.com/profile/${pendingReports[currentIndex]?.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#3182ce', textDecoration: 'underline' }}
+                      >
+                        {pendingReports[currentIndex]?.username}
+                      </a>
+                    </Text>
                     <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
                       Evidence:
                     </Text>
