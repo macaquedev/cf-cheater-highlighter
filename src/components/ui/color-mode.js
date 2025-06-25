@@ -1,54 +1,29 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { ThemeProvider } from "next-themes"
-import { Button, IconButton, Skeleton } from "@chakra-ui/react"
+import { ThemeProvider, useTheme } from "next-themes"
+import { IconButton, Skeleton } from "@chakra-ui/react"
 import { LuMoon, LuSun } from "react-icons/lu"
 
-const ColorModeContext = createContext({})
-
-export function ColorModeProvider({ children, ...props }) {
+export function ColorModeProvider({ children }) {
   return (
-    <ThemeProvider {...props}>
-      <ColorModeContext.Provider value={{}}>
-        {children}
-      </ColorModeContext.Provider>
+    <ThemeProvider attribute="class" storageKey="theme" defaultTheme="light">
+      {children}
     </ThemeProvider>
   )
 }
 
 export function useColorMode() {
-  const context = useContext(ColorModeContext)
-  if (!context) {
-    throw new Error("useColorMode must be used within a ColorModeProvider")
-  }
-  
-  const [mounted, setMounted] = useState(false)
-  const [colorMode, setColorMode] = useState("light")
-
-  useEffect(() => {
-    setMounted(true)
-    const savedMode = localStorage.getItem("theme") || "light"
-    setColorMode(savedMode)
-  }, [])
+  const { theme: colorMode, setTheme: setColorMode, resolvedTheme } = useTheme()
+  const mounted = typeof window !== "undefined"
 
   const toggleColorMode = () => {
-    const newMode = colorMode === "light" ? "dark" : "light"
-    setColorMode(newMode)
-    localStorage.setItem("theme", newMode)
-    document.documentElement.classList.toggle("dark", newMode === "dark")
-  }
-
-  const setColorModeValue = (mode) => {
-    setColorMode(mode)
-    localStorage.setItem("theme", mode)
-    document.documentElement.classList.toggle("dark", mode === "dark")
+    setColorMode(resolvedTheme === "light" ? "dark" : "light")
   }
 
   return {
-    colorMode,
+    colorMode: resolvedTheme,
     toggleColorMode,
-    setColorMode: setColorModeValue,
+    setColorMode,
     mounted,
   }
 }
