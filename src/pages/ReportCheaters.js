@@ -46,33 +46,32 @@ const ReportCheaters = ({ user }) => {
         setIsChecking(false);
         return;
       }
+
+      // Check if a report for this user already exists (any status)
+      const reportsRef = collection(db, 'reports');
+      const existingReportQuery = query(
+        reportsRef,
+        where('username', '==', normalizedUsername)
+      );
+      const existingReportSnapshot = await getDocs(existingReportQuery);
+      if (!existingReportSnapshot.empty) {
+        setMessage({
+          type: 'error',
+          text: `A report for "${username}" already exists and is under review. You cannot submit another report for the same user until the current one is resolved.`
+        });
+        setIsSubmitting(false);
+        setIsChecking(false);
+        return;
+      }
       
-      // Submit the new report first
+      // Submit the new report
       await addDoc(collection(db, 'reports'), {
         username: normalizedUsername,
         evidence: evidence.trim(),
         status: 'pending',
         reportedAt: new Date(),
       });
-      
-      // Check if there are already pending reports for this user (informational only)
-      const reportsRef = collection(db, 'reports');
-      const reportQuery = query(
-        reportsRef, 
-        where('username', '==', normalizedUsername),
-        where('status', '==', 'pending')
-      );
-      const reportSnapshot = await getDocs(reportQuery);
-      
-      if (reportSnapshot.size > 1) {
-        setMessage({ 
-          type: 'info', 
-          text: `Your report for "${username}" has been submitted and is now pending review. Please note that there are already ${reportSnapshot.size - 1} other pending report(s) for this user. Additional reports help moderators review the case more thoroughly.` 
-        });
-      } else {
-        setMessage({ type: 'success', text: `User "${username}" has been reported successfully!` });
-      }
-      
+      setMessage({ type: 'success', text: `User "${username}" has been reported successfully!` });
       setUsername('');
       setEvidence('');
     } catch (error) {
