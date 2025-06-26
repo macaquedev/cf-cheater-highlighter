@@ -26,6 +26,14 @@ const ReportCheaters = ({ user }) => {
       return;
     }
 
+    // Require evidence to include a markdown link object or a plaintext URL
+    const hasMarkdownLink = /\[[^\]]+\]\((https?:\/\/[^)]+)\)/.test(evidence);
+    const hasPlainUrl = /https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+/.test(evidence);
+    if (!hasMarkdownLink && !hasPlainUrl) {
+      setMessage({ type: 'error', text: 'Evidence must include at least one link (either a plain URL like https://... or a markdown link like [text](https://...)).' });
+      return;
+    }
+
     setIsSubmitting(true);
     setIsChecking(true);
     try {
