@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Button, Heading, VStack, Input, Text, Flex
+  Box, Button, Heading, VStack, Input, Text, Flex, HStack
 } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { renderMarkdown } from '../utils/markdownRenderer';
+import { Link } from 'react-router-dom';
 
 const Admin = () => {
   const [user, setUser] = useState(null);

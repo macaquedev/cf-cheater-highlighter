@@ -98,6 +98,33 @@ function Home({ user }) {
           </Box>
         )}
 
+        {/* Appeal Section - Only visible to non-admins */}
+        {!user && (
+          <Box w="full">
+            <Box
+              bg="white"
+              _dark={{ bg: "gray.800" }}
+              p={8}
+              borderRadius="lg"
+              shadow="md"
+              textAlign="center"
+              maxW="md"
+              mx="auto"
+            >
+              <Icon as={FaShieldAlt} boxSize={8} color="orange.500" mb={4} />
+              <Heading size="md" mb={3} color="gray.800" _dark={{ color: "gray.100" }}>
+                Appeal a Cheater Mark
+              </Heading>
+              <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
+                If you believe you were wrongly marked as a cheater, you can submit an appeal for review by the administrators.
+              </Text>
+              <Button colorScheme="orange" size="lg" as="a" href="/appeal" w="full">
+                Appeal
+              </Button>
+            </Box>
+          </Box>
+        )}
+
         {/* Chrome Extension Notice */}
         <Box
           w="full"
