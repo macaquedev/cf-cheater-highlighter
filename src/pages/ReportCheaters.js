@@ -66,22 +66,23 @@ const ReportCheaters = ({ user }) => {
       }
 
       // Check if a pending report for this user already exists
-      const reportsRef = collection(db, 'reports');
-      const existingReportQuery = query(
-        reportsRef,
-        where('username', '==', normalizedUsername),
-        where('status', '==', 'pending')
-      );
-      const existingReportSnapshot = await getDocs(existingReportQuery);
-      if (!existingReportSnapshot.empty) {
-        setMessage({
-          type: 'error',
-          text: `A report for "${username}" already exists and is under review. You cannot submit another report for the same user until the current one is resolved.`
-        });
-        setIsSubmitting(false);
-        setIsChecking(false);
-        return;
-      }
+      // * Disabled this for now to fix security issue
+      // const reportsRef = collection(db, 'reports');
+      // const existingReportQuery = query(
+      //   reportsRef,
+      //   where('username', '==', normalizedUsername),
+      //   where('status', '==', 'pending')
+      // );
+      // const existingReportSnapshot = await getDocs(existingReportQuery);
+      // if (!existingReportSnapshot.empty) {
+      //   setMessage({
+      //     type: 'error',
+      //     text: `A report for "${username}" already exists and is under review. You cannot submit another report for the same user until the current one is resolved.`
+      //   });
+      //   setIsSubmitting(false);
+      //   setIsChecking(false);
+      //   return;
+      // }
       
       // Submit the new report
       await addDoc(collection(db, 'reports'), {
