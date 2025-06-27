@@ -39,9 +39,9 @@ const ReportCheaters = ({ user }) => {
     try {
       // Convert username to lowercase and remove all whitespace for case-insensitive, space-insensitive storage
       const normalizedUsername = username.trim().replace(/\s+/g, '').toLowerCase();
-      
+
       // Check if the user exists on Codeforces
-      const cfResponse = await fetch(`https://codeforces.com/api/user.info?handles=${normalizedUsername}`);
+      const cfResponse = await fetch(`https://codeforces.com/api/user.info?handles=${normalizedUsername}&checkHistoricHandles=false`);
       const cfData = await cfResponse.json();
       if (cfData.status !== 'OK' || !cfData.result || cfData.result.length === 0) {
         setMessage({ type: 'error', text: `User "${normalizedUsername}" does not exist on Codeforces. Please check the username and try again.` });
