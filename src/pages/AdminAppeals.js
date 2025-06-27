@@ -96,6 +96,22 @@ const AdminAppeals = ({ user: initialUser }) => {
   const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
   const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, appeals.length - 1));
 
+  // Add keyboard navigation for appeals
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!user || appeals.length === 0) return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setCurrentIndex((i) => Math.max(i - 1, 0));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setCurrentIndex((i) => Math.min(i + 1, appeals.length - 1));
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [user, appeals.length]);
+
   if (!user) {
     return (
       <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }} py={8} px={4}>
