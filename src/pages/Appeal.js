@@ -2,6 +2,7 @@ import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import RichTextEditor from '../components/RichTextEditor';
 
 const Appeal = () => {
   const [appealUsername, setAppealUsername] = useState('');
@@ -43,7 +44,7 @@ const Appeal = () => {
       const cfData = await cfResponse.json();
       const firstName = (cfData.result[0].firstName || '').toLowerCase().trim();
       if (firstName !== verifyName) {
-        setAppealStatus({ type: 'error', text: `You have not verified your Codeforces account. Please change your account's first name to "${verifyName}" (without quotes) <a href="https://codeforces.com/settings/social" style="color: blue;">here</a>.` });
+        setAppealStatus({ type: 'error', text: `We cannot verify your Codeforces account. Please change your account's first name to "${verifyName}" (without quotes) <a href="https://codeforces.com/settings/social" style="color: blue;">here</a>.` });
         return;
       }
     // Submit the appeal
@@ -109,13 +110,11 @@ const Appeal = () => {
             </Box>
             <Box>
               <label htmlFor="appeal-message" style={{ color: 'inherit' }}>Appeal Message</label>
-              <Input
-                id="appeal-message"
-                placeholder="Explain why you should be removed from the cheater database"
+              <RichTextEditor
                 value={appealMessage}
-                onChange={(e) => setAppealMessage(e.target.value)}
-                required
-                mt={1}
+                onChange={setAppealMessage}
+                placeholder="Enter appeal message with formatting options above"
+                rows={4}
               />
             </Box>
             <Button colorScheme="blue" type="submit" w="full" size="lg" disabled={appealDisabled}>
