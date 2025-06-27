@@ -237,6 +237,7 @@ const ReportCheaters = ({ user }) => {
               size="lg"
               isLoading={isSubmitting || isChecking}
               loadingText={isChecking ? "Checking..." : "Submitting..."}
+              disabled={isSubmitting || isChecking}
             >
               Submit Report
             </Button>
