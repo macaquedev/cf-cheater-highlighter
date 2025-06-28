@@ -1,62 +1,137 @@
-import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
+import { Box, Heading, Text, Input, Button, Link, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import RichTextEditor from '../components/RichTextEditor';
+import { Icon } from '@chakra-ui/react';
+import { FiRefreshCw } from 'react-icons/fi';
 
 const Appeal = () => {
   const [appealUsername, setAppealUsername] = useState('');
   const [appealMessage, setAppealMessage] = useState('');
   const [appealStatus, setAppealStatus] = useState(null);
   const [appealDisabled, setAppealDisabled] = useState(false);
+  const [verifyContest, setVerifyContest] = useState(null);
+  const [verifyProblem, setVerifyProblem] = useState(null);
 
-  const verifyName = 'cf-cheater-appeal';
+  const generateRandomProblem = () => {
+    const contest = Math.floor(Math.random() * 900) + 100;
+    const problem = 'A';
 
-  const handleAppealSubmit = async () => {
-    if (!appealUsername.trim() || !appealMessage.trim()) {
-      setAppealStatus({ type: 'error', text: 'Please fill in all fields.' });
+
+    if (verifyContest && verifyContest === contest) {
+      generateRandomProblem();
       return;
     }
-    const normalizedUsername = appealUsername.trim().replace(/\s+/g, '').toLowerCase();
-    // Check if user is in cheaters DB
+    
+    setVerifyContest(contest);
+    setVerifyProblem(problem);
+  };
+
+  if (verifyContest === null || verifyProblem === null) {
+    generateRandomProblem();
+  }
+
+  const verifyUser = async (normalizedUsername) => {
+    // Get user's recent submissions
+    const submissionsResponse = await fetch(`https://codeforces.com/api/user.status?handle=${normalizedUsername}&count=10`);
+    const submissionsData = await submissionsResponse.json();
+    
+    if (submissionsData.status !== 'OK') {
+      setAppealStatus({ type: 'error', text: 'Could not fetch user submissions. Please try again.' });
+      return false;
+    }
+
+    // Check if any recent submission is a compilation error to the verify contest/problem
+    const hasCompilationError = submissionsData.result.some(submission => 
+      submission.problem.contestId === verifyContest &&
+      submission.problem.index === verifyProblem &&
+      submission.verdict === 'COMPILATION_ERROR'
+    );
+
+    if (!hasCompilationError) {
+      setAppealStatus({ type: 'error', text: `We cannot verify your Codeforces account. Please submit a compilation error to the link above.` });
+      return false;
+    }
+    return true;
+  };
+
+  const validateFormFields = () => {
+    if (!appealUsername.trim() || !appealMessage.trim()) {
+      setAppealStatus({ type: 'error', text: 'Please fill in all fields.' });
+      return false;
+    }
+    return true;
+  };
+
+  const checkUserInCheatersDB = async (normalizedUsername) => {
     const cheatersRef = collection(db, 'cheaters');
     const cheaterQuery = query(cheatersRef, where('username', '==', normalizedUsername));
     const cheaterSnapshot = await getDocs(cheaterQuery);
+    
     if (cheaterSnapshot.empty) {
       setAppealStatus({ type: 'error', text: `User "${appealUsername}" is not in the cheater database. Only users marked as cheaters can appeal.` });
-      return;
+      return false;
     }
-    // Check if an appeal already exists for this user
+    return true;
+  };
+
+  const checkExistingAppeal = async (normalizedUsername) => {
     const appealsRef = collection(db, 'appeals');
     const existingAppealQuery = query(appealsRef, where('username', '==', normalizedUsername));
     const existingAppealSnapshot = await getDocs(existingAppealQuery);
+    
     if (!existingAppealSnapshot.empty) {
       const status = existingAppealSnapshot.docs[0].data().status;
-      if (status === 'declined' || status === 'pending') {
+      if (status === 'declined') {
         setAppealStatus({ type: 'error', text: `You can only appeal once. Your previous appeal was ${status}.` });
-      } else {
+      } else if (status === 'pending') {
         setAppealStatus({ type: 'error', text: `An appeal for this user is already pending. Please wait for admin review.` });
       }
-      return;
+      return false;
     }
-    // Check if the user's name is "cf-cheater-appeal"
-    const cfResponse = await fetch(`https://codeforces.com/api/user.info?handles=${normalizedUsername}&checkHistoricHandles=false`);
-      const cfData = await cfResponse.json();
-      const firstName = (cfData.result[0].firstName || '').toLowerCase().trim();
-      if (firstName !== verifyName) {
-        setAppealStatus({ type: 'error', text: `We cannot verify your Codeforces account. Please change your account's first name to "${verifyName}" (without quotes) <a href="https://codeforces.com/settings/social" style="color: blue;">here</a>.` });
-        return;
-      }
-    // Submit the appeal
+    return true;
+  };
+
+  const submitAppeal = async (normalizedUsername) => {
+    const appealsRef = collection(db, 'appeals');
     await addDoc(appealsRef, {
       username: normalizedUsername,
       message: appealMessage.trim(),
       status: 'pending',
       submittedAt: new Date(),
     });
+    
     setAppealStatus({ type: 'success', text: `Appeal for "${appealUsername}" submitted successfully!` });
     setAppealUsername('');
     setAppealMessage('');
+  };
+
+  const handleAppealSubmit = async () => {
+    // Step 1: Validate form fields
+    if (!validateFormFields()) {
+      return;
+    }
+
+    const normalizedUsername = appealUsername.trim().replace(/\s+/g, '').toLowerCase();
+    
+    // Step 2: Check if user is in cheaters DB
+    if (!(await checkUserInCheatersDB(normalizedUsername))) {
+      return;
+    }
+    
+    // Step 3: Check if an appeal already exists
+    if (!(await checkExistingAppeal(normalizedUsername))) {
+      return;
+    }
+    
+    // Step 4: Verify user identity
+    if (!(await verifyUser(normalizedUsername))) {
+      return;
+    }
+    
+    // Step 5: Submit the appeal
+    await submitAppeal(normalizedUsername);
   };
 
   const handleSubmit = async (e) => {
@@ -75,8 +150,22 @@ const Appeal = () => {
         <Text mb={4} fontSize="sm" color="gray.700" _dark={{ color: 'gray.200' }}>
           If you believe you were wrongly marked as a cheater, you can submit an appeal. Only users currently in the cheater database can appeal. Each user can only appeal once.
           <br/>
-          <b>Before you appeal, you must verify your identity by going <a href="https://codeforces.com/settings/social" style={{color: "blue"}}>here</a> and changing your account's first name to "{verifyName}" (without quotes).</b>
+          <b>Before you appeal, you must verify your identity by submitting a compilation error to the problem below.</b>
         </Text>
+        <Box mb={4}>
+          <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.200' }} mb={2}>
+            Current verification problem: <Link href={`https://codeforces.com/contest/${verifyContest}/problem/${verifyProblem}`} style={{color: "blue"}} target="_blank" rel="noopener noreferrer">{verifyContest}{verifyProblem}</Link>
+          </Text>
+          <Button 
+            size="sm" 
+            colorScheme="gray" 
+            variant="outline"
+            onClick={generateRandomProblem}
+          >
+            <Icon as={FiRefreshCw} />
+            Reroll Problem
+          </Button>
+        </Box>
         {appealStatus && (
           <Box p={3} mb={4} rounded="md" bg={
             appealStatus.type === 'success' ? 'green.100' :
