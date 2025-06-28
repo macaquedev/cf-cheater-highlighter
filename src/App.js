@@ -8,6 +8,7 @@ import ReportCheaters from './pages/ReportCheaters';
 import Search from './pages/Search';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
+import SearchOrg from './pages/SearchOrg';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import Appeal from './pages/Appeal';
 import AdminAppeals from './pages/AdminAppeals';
@@ -105,6 +106,7 @@ function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/appeals" element={<AdminAppeals user={user} />} />
               <Route path="/appeal" element={<Appeal />} />
+              <Route path = "/search-org" element={<SearchOrg user = {user} />} />
             </Routes>
           </Box>
         </Router>
