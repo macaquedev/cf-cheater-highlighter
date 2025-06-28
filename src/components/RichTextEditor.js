@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Textarea, HStack, IconButton, Input, Button, Text } from '@chakra-ui/react';
 import { LuBold, LuItalic, LuCode, LuLink, LuLink2, LuEye, LuPencil, LuFileCode } from 'react-icons/lu';
-import { renderMarkdown } from '../utils/markdownRenderer';
+import MarkdownRenderer from './MarkdownRenderer';
+import './RichTextEditor.css';
+
+// Styled wrapper for ReactMarkdown
+const StyledMarkdown = ({ children }) => (
+  <MarkdownRenderer>{children}</MarkdownRenderer>
+);
 
 const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows = 4 }) => {
-  const [selectedText, setSelectedText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -78,7 +83,6 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows =
     const textarea = document.getElementById('rich-text-editor');
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    setSelectedText(value.substring(start, end));
   };
 
   return (
@@ -181,8 +185,9 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows =
             bg: "gray.800", 
             borderColor: "gray.600" 
           }}
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(value) }}
-        />
+        >
+          <StyledMarkdown>{value}</StyledMarkdown>
+        </Box>
       ) : (
         <Textarea
           id="rich-text-editor"

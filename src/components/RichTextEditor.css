@@ -1,0 +1,132 @@
+/* Styles for ReactMarkdown content */
+.markdown-content strong {
+  font-weight: bold;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+/* Only style inline code, not code blocks */
+.markdown-content code:not(pre code) {
+  background-color: #f8fafc;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: #2d3748;
+}
+
+/* Prism.js theme switching */
+/* Light mode - use default prism theme */
+.markdown-content pre[class*="language-"] {
+  background: #f5f2f0;
+  color: #393a34;
+}
+
+/* Dark mode - override with tomorrow theme */
+.dark .markdown-content pre[class*="language-"] {
+  background: #2d2d2d;
+  color: #cccccc;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.comment,
+.dark .markdown-content pre[class*="language-"] .token.prolog,
+.dark .markdown-content pre[class*="language-"] .token.doctype,
+.dark .markdown-content pre[class*="language-"] .token.cdata {
+  color: #999;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.punctuation {
+  color: #ccc;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.namespace {
+  opacity: .7;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.property,
+.dark .markdown-content pre[class*="language-"] .token.tag,
+.dark .markdown-content pre[class*="language-"] .token.boolean,
+.dark .markdown-content pre[class*="language-"] .token.number,
+.dark .markdown-content pre[class*="language-"] .token.constant,
+.dark .markdown-content pre[class*="language-"] .token.symbol,
+.dark .markdown-content pre[class*="language-"] .token.deleted {
+  color: #f08d49;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.selector,
+.dark .markdown-content pre[class*="language-"] .token.attr-name,
+.dark .markdown-content pre[class*="language-"] .token.string,
+.dark .markdown-content pre[class*="language-"] .token.char,
+.dark .markdown-content pre[class*="language-"] .token.builtin,
+.dark .markdown-content pre[class*="language-"] .token.inserted {
+  color: #7ec699;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.operator,
+.dark .markdown-content pre[class*="language-"] .token.entity,
+.dark .markdown-content pre[class*="language-"] .token.url,
+.dark .markdown-content pre[class*="language-"] .language-css .token.string,
+.dark .markdown-content pre[class*="language-"] .style .token.string {
+  color: #67cdcc;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.atrule,
+.dark .markdown-content pre[class*="language-"] .token.attr-value,
+.dark .markdown-content pre[class*="language-"] .token.keyword {
+  color: #cc99cc;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.function {
+  color: #f08d49;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.regex,
+.dark .markdown-content pre[class*="language-"] .token.important,
+.dark .markdown-content pre[class*="language-"] .token.variable {
+  color: #e90;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.important,
+.dark .markdown-content pre[class*="language-"] .token.bold {
+  font-weight: bold;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.italic {
+  font-style: italic;
+}
+
+.dark .markdown-content pre[class*="language-"] .token.entity {
+  cursor: help;
+}
+
+.markdown-content a {
+  color: #3182ce !important;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.markdown-content a:hover {
+  color: #2c5aa0 !important;
+}
+
+.markdown-content br {
+  display: block;
+  content: "";
+  margin-top: 0.5rem;
+}
+
+/* Dark mode styles for Chakra UI */
+.dark .markdown-content code:not(pre code) {
+  background-color: #525252;
+  color: #e2e8f0;
+}
+
+.dark .markdown-content a {
+  color: #63b3ed !important;
+}
+
+.dark .markdown-content a:hover {
+  color: #90cdf4 !important;
+} 

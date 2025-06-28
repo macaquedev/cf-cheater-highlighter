@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Input, Heading, VStack, Text, HStack, Table, Dialog, Portal } from '@chakra-ui/react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
-import { renderMarkdown } from '../utils/markdownRenderer';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 const Search = ({ user }) => {
   const [username, setUsername] = useState('');
@@ -362,8 +362,9 @@ const Search = ({ user }) => {
                       },
                       '& br': { display: 'block', content: '""', marginTop: 2 }
                     }}
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedEvidence) }}
-                  />
+                  >
+                    <MarkdownRenderer>{selectedEvidence}</MarkdownRenderer>
+                  </Box>
                 </Dialog.Body>
                 <Dialog.Footer>
                   <Button onClick={() => setEvidenceModalOpen(false)}>
@@ -541,8 +542,9 @@ const Search = ({ user }) => {
                         },
                         '& br': { display: 'block', content: '""', marginTop: 2 }
                       }}
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(result.evidence) }}
-                    />
+                    >
+                      <MarkdownRenderer>{result.evidence}</MarkdownRenderer>
+                    </Box>
                     {result.reportedAt && (
                       <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }} mt={2}>
                         Reported on: {result.reportedAt.toDate ? result.reportedAt.toDate().toLocaleDateString() : 'Unknown date'}

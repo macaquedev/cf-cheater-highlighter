@@ -5,7 +5,7 @@ import {
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { renderMarkdown } from '../utils/markdownRenderer';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import { Link } from 'react-router-dom';
 
 const Admin = () => {
@@ -388,10 +388,9 @@ const Admin = () => {
                         },
                         '& br': { display: 'block', content: '""', marginTop: 2 }
                       }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: renderMarkdown(pendingReports[currentIndex]?.evidence || '')
-                      }}
-                    />
+                    >
+                      <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
+                    </Box>
                     <Flex gap={4}>
                       <Button colorScheme="green" onClick={handleAccept}>
                         Add to Database
