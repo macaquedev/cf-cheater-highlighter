@@ -349,7 +349,7 @@ const Search = ({ user }) => {
                         }
                       },
                       '& pre code': {
-                        bg: 'transparent',
+                          bg: 'transparent',
                         p: 0,
                         borderRadius: 0,
                         fontSize: 'sm',
