@@ -4,10 +4,9 @@ const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheater
   // Highlight cheaters
   function markCheaters(cheaterSet) {
     if (cheaterSet == null) return;
-    const anchors = document.querySelectorAll('a[href^="/profile/"]');
+    const anchors = document.querySelectorAll('a.rated-user');
     anchors.forEach(a => {
-      const parts = a.getAttribute('href').split('/');
-      const user = parts[2];
+      const user = a.textContent.trim();
       if (!user) return;
       if (cheaterSet.has(user.toLowerCase()) && !a.classList.contains('cf-cheater')) {
         a.classList.add('cf-cheater');
