@@ -168,7 +168,7 @@ const Appeal = () => {
         </Text>
         <Box mb={4}>
           <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.200' }} mb={2}>
-            Current verification problem: <Link href={`https://codeforces.com/contest/${verifyContest}/problem/${verifyProblem}`} style={{color: "blue"}} target="_blank" rel="noopener noreferrer">{verifyContest}{verifyProblem}</Link>
+            Current verification problem: <a href={`https://codeforces.com/contest/${verifyContest}/problem/${verifyProblem}`} style={{color: "blue"}} target="_blank" rel="noopener noreferrer">{verifyContest}{verifyProblem}</a>
           </Text>
           <Button 
             size="sm" 

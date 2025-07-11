@@ -200,7 +200,7 @@ const ReportCheaters = ({ user }) => {
               <Text fontSize="md" fontWeight="semibold" mb={1}>Admin Notice</Text>
               <Text fontSize="sm">
                 You can review and manage reports in the{' '}
-                <Link href="/admin" color="blue.600" _dark={{ color: "blue.300" }} fontWeight="semibold" textDecoration="underline" _hover={{ color: 'blue.800', _dark: { color: 'blue.100' } }}>
+                <Link to="/admin" color="blue.600" _dark={{ color: "blue.300" }} fontWeight="semibold" textDecoration="underline" _hover={{ color: 'blue.800', _dark: { color: 'blue.100' } }}>
                   Admin Panel
                 </Link>
                 .

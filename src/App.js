@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Box, Flex, Button, Heading, Text, VStack, HStack } from '@chakra-ui/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -19,18 +19,18 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
       <Flex justify="space-between" align="center" maxW="6xl" mx="auto">
         <Heading size="md" color="blue.600" _dark={{ color: "blue.400" }}>CF Cheater Database</Heading>
         <HStack spacing={4}>
-          <Button variant="ghost" as="a" href="/">Home</Button>
-          <Button variant="ghost" as="a" href="/reportCheaters">Report</Button>
-          <Button variant="ghost" as="a" href="/search">Search</Button>
+          <Button variant="ghost" as={Link} to="/">Home</Button>
+          <Button variant="ghost" as={Link} to="/reportCheaters">Report</Button>
+          <Button variant="ghost" as={Link} to="/search">Search</Button>
           {!user && (
-            <Button variant="ghost" as="a" href="/appeal">Appeal</Button>
+            <Button variant="ghost" as={Link} to="/appeal">Appeal</Button>
           )}
           {user && (
             <>
-              <Button variant="ghost" as="a" href="/admin">
+              <Button variant="ghost" as={Link} to="/admin">
                 Review reports{typeof pendingCount === 'number' ? ` (${pendingCount})` : ''}
               </Button>
-              <Button variant="ghost" as="a" href="/admin/appeals">
+              <Button variant="ghost" as={Link} to="/admin/appeals">
                 Review appeals{typeof pendingAppealsCount === 'number' ? ` (${pendingAppealsCount})` : ''}
               </Button>
               <Button variant="outline" size="sm" onClick={onLogout}>Logout</Button>
@@ -102,8 +102,22 @@ function App() {
             <Route path="/" element={<Home user={user} />} />
             <Route path="/reportCheaters" element={<ReportCheaters user={user} />} />
             <Route path="/search" element={<Search user={user} />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/appeals" element={<AdminAppeals user={user} />} />
+            <Route path="/admin" element={
+              <Admin 
+                user={user}
+                pendingReportsSnapshot={pendingReportsSnapshot}
+                pendingReportsLoading={pendingReportsLoading}
+                pendingReportsError={pendingReportsError}
+              />
+            } />
+            <Route path="/admin/appeals" element={
+              <AdminAppeals 
+                user={user}
+                pendingAppealsSnapshot={pendingAppealsSnapshot}
+                pendingAppealsLoading={pendingAppealsLoading}
+                pendingAppealsError={pendingAppealsError}
+              />
+            } />
             <Route path="/appeal" element={<Appeal />} />
           </Routes>
         </Box>

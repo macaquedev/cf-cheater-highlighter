@@ -8,15 +8,14 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { Link } from 'react-router-dom';
 
-const Admin = () => {
-  const [user, setUser] = useState(null);
+const Admin = ({ user: initialUser, pendingReportsSnapshot, pendingReportsLoading, pendingReportsError }) => {
+  const [user, setUser] = useState(initialUser || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [pendingReports, setPendingReports] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
-  const [loadingReports, setLoadingReports] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Wrapper function to handle loading state
@@ -36,39 +35,30 @@ const Admin = () => {
     return () => unsubscribe();
   }, []);
 
+  // Use the Firebase hook data passed from App.js
   useEffect(() => {
-    if (user) {
-      fetchPendingReports();
-    } else {
-      setPendingReports([]);
-      setCurrentIndex(0);
-    }
-    // eslint-disable-next-line
-  }, [user]);
-
-  const fetchPendingReports = async (stayAtIndex = null) => {
-    setLoadingReports(true);
-    try {
-      const q = query(collection(db, 'reports'), where('status', '==', 'pending'));
-      const querySnapshot = await getDocs(q);
+    if (pendingReportsSnapshot && !pendingReportsLoading) {
       const reports = [];
-      querySnapshot.forEach((doc) => {
+      pendingReportsSnapshot.forEach((doc) => {
         reports.push({ id: doc.id, ...doc.data() });
       });
-      console.log('Fetched reports:', reports); // Debug log
       setPendingReports(reports);
-      if (stayAtIndex !== null) {
-        setCurrentIndex(Math.min(stayAtIndex, reports.length - 1));
-      } else {
+      // Reset current index if it's out of bounds
+      if (currentIndex >= reports.length && reports.length > 0) {
+        setCurrentIndex(0);
+      } else if (reports.length === 0) {
         setCurrentIndex(0);
       }
-    } catch (error) {
-      console.error('Error fetching reports:', error); // Debug log
-      setMessage({ type: 'error', text: 'Failed to fetch reports.' });
-    } finally {
-      setLoadingReports(false);
     }
-  };
+  }, [pendingReportsSnapshot, pendingReportsLoading, currentIndex]);
+
+  // Handle any errors from the Firebase hook
+  useEffect(() => {
+    if (pendingReportsError) {
+      console.error('Error fetching pending reports:', pendingReportsError);
+      setMessage({ type: 'error', text: 'Failed to fetch reports.' });
+    }
+  }, [pendingReportsError]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -138,7 +128,7 @@ const Admin = () => {
       : 'Report accepted and user added to cheaters.';
     
     setMessage({ type: 'success', text: messageText });
-    fetchPendingReports(currentIndex);
+    // No need to manually refresh - the Firebase hook will automatically update the data
   };
 
   const handleDecline = async () => {
@@ -147,7 +137,7 @@ const Admin = () => {
     
     await deleteDoc(doc(db, 'reports', report.id));
     setMessage({ type: 'info', text: 'Report declined.' });
-    fetchPendingReports(currentIndex);
+    // No need to manually refresh - the Firebase hook will automatically update the data
   };
 
   const handleAcceptWithLoading = () => {
@@ -266,7 +256,7 @@ const Admin = () => {
             </form>
           ) : (
             <>
-              {loadingReports ? (
+              {pendingReportsLoading ? (
                 <Text>Loading reports...</Text>
               ) : pendingReports.length === 0 ? (
                 <VStack gap={6} align="center" py={8}>

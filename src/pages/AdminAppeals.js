@@ -5,7 +5,7 @@ import { collection, getDocs, query, where, doc, deleteDoc, updateDoc } from 'fi
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { Link } from 'react-router-dom';
 
-const AdminAppeals = ({ user: initialUser }) => {
+const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError }) => {
   const [user, setUser] = useState(initialUser || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,32 +34,50 @@ const AdminAppeals = ({ user: initialUser }) => {
     return () => unsubscribe();
   }, []);
 
+  // Use the Firebase hook data passed from App.js
   useEffect(() => {
-    if (!user) return;
-    const fetchAppeals = async () => {
-      setLoading(true);
-      const appealsSnapshot = await getDocs(collection(db, 'appeals'));
-      const appealsData = [];
-      for (const appealDoc of appealsSnapshot.docs) {
-        const appeal = { id: appealDoc.id, ...appealDoc.data() };
-        // Skip declined appeals
-        if (appeal.status === 'declined') continue;
-        // Fetch cheater evidence for this user
-        const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
-        const cheaterSnapshot = await getDocs(cheaterQuery);
-        if (!cheaterSnapshot.empty) {
-          appeal.cheaterEvidence = cheaterSnapshot.docs[0].data().evidence;
-        } else {
-          appeal.cheaterEvidence = null;
+    if (pendingAppealsSnapshot && !pendingAppealsLoading) {
+      const fetchAppealsWithEvidence = async () => {
+        setLoading(true);
+        const appealsData = [];
+        
+        for (const appealDoc of pendingAppealsSnapshot.docs) {
+          const appeal = { id: appealDoc.id, ...appealDoc.data() };
+          // Skip declined appeals
+          if (appeal.status === 'declined') continue;
+          
+          // Fetch cheater evidence for this user
+          const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
+          const cheaterSnapshot = await getDocs(cheaterQuery);
+          if (!cheaterSnapshot.empty) {
+            appeal.cheaterEvidence = cheaterSnapshot.docs[0].data().evidence;
+          } else {
+            appeal.cheaterEvidence = null;
+          }
+          appealsData.push(appeal);
         }
-        appealsData.push(appeal);
-      }
-      setAppeals(appealsData);
-      setCurrentIndex(0);
-      setLoading(false);
-    };
-    fetchAppeals();
-  }, [user]);
+        
+        setAppeals(appealsData);
+        // Reset current index if it's out of bounds
+        if (currentIndex >= appealsData.length && appealsData.length > 0) {
+          setCurrentIndex(0);
+        } else if (appealsData.length === 0) {
+          setCurrentIndex(0);
+        }
+        setLoading(false);
+      };
+      
+      fetchAppealsWithEvidence();
+    }
+  }, [pendingAppealsSnapshot, pendingAppealsLoading, currentIndex]);
+
+  // Handle any errors from the Firebase hook
+  useEffect(() => {
+    if (pendingAppealsError) {
+      console.error('Error fetching pending appeals:', pendingAppealsError);
+      setMessage({ type: 'error', text: 'Failed to fetch appeals.' });
+    }
+  }, [pendingAppealsError]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -85,18 +103,14 @@ const AdminAppeals = ({ user: initialUser }) => {
       await Promise.all(deletePromises);
     }
     await deleteDoc(doc(db, 'appeals', appeal.id));
-    const newAppeals = appeals.filter(a => a.id !== appeal.id);
-    setAppeals(newAppeals);
-    setCurrentIndex((i) => Math.max(0, Math.min(i, newAppeals.length - 1)));
     setMessage({ type: 'success', text: 'Appeal accepted and user completely removed from cheaters.' });
+    // No need to manually update state - the Firebase hook will automatically update the data
   };
 
   const handleDeclineAppeal = async (appeal) => {
     await updateDoc(doc(db, 'appeals', appeal.id), { status: 'declined' });
-    // Remove declined appeal from the queue
-    const newAppeals = appeals.filter(a => a.id !== appeal.id);
-    setAppeals(newAppeals);
-    setCurrentIndex((i) => Math.max(0, Math.min(i, newAppeals.length - 1)));
+    setMessage({ type: 'info', text: 'Appeal declined.' });
+    // No need to manually update state - the Firebase hook will automatically update the data
   };
 
   const handleAcceptAppealWithLoading = (appeal) => {
