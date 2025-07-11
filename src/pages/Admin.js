@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Button, Heading, VStack, Input, Text, Flex, HStack
+  Box, Button, Heading, VStack, Input, Text, Flex
 } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import { Link } from 'react-router-dom';
 
 const Admin = ({ user: initialUser, pendingReportsSnapshot, pendingReportsLoading, pendingReportsError }) => {
   const [user, setUser] = useState(initialUser || null);
@@ -74,10 +73,6 @@ const Admin = ({ user: initialUser, pendingReportsSnapshot, pendingReportsLoadin
     } finally {
       setAuthLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
   };
 
   const handleAccept = async () => {

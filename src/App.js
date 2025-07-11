@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
-import { Box, Flex, Button, Heading, Text, VStack, HStack } from '@chakra-ui/react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Box, Flex, Button, Heading, Text, HStack } from '@chakra-ui/react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ColorModeProvider, ColorModeButton } from './components/ui/color-mode';
+import { ColorModeButton } from './components/ui/color-mode';
 import ReportCheaters from './pages/ReportCheaters';
 import Search from './pages/Search';
 import Admin from './pages/Admin';
