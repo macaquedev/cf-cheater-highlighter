@@ -13,19 +13,33 @@ const Appeal = () => {
   const [appealDisabled, setAppealDisabled] = useState(false);
   const [verifyContest, setVerifyContest] = useState(null);
   const [verifyProblem, setVerifyProblem] = useState(null);
+  const [rerollLoading, setRerollLoading] = useState(false);
 
-  const generateRandomProblem = () => {
+  // Wrapper function to handle loading state
+  const withLoading = async (loadingSetter, asyncFunction) => {
+    loadingSetter(true);
+    try {
+      await asyncFunction();
+    } finally {
+      loadingSetter(false);
+    }
+  };
+
+  const generateRandomProblem = async () => {
     const contest = Math.floor(Math.random() * 900) + 100;
     const problem = 'A';
 
-
     if (verifyContest && verifyContest === contest) {
-      generateRandomProblem();
+      await generateRandomProblem();
       return;
     }
     
     setVerifyContest(contest);
     setVerifyProblem(problem);
+  };
+
+  const handleRerollProblem = () => {
+    withLoading(setRerollLoading, generateRandomProblem);
   };
 
   if (verifyContest === null || verifyProblem === null) {
@@ -160,7 +174,9 @@ const Appeal = () => {
             size="sm" 
             colorScheme="gray" 
             variant="outline"
-            onClick={generateRandomProblem}
+            onClick={handleRerollProblem}
+            isLoading={rerollLoading}
+            loadingText="Rerolling..."
           >
             <Icon as={FiRefreshCw} />
             Reroll Problem

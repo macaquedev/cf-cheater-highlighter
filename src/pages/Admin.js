@@ -17,6 +17,17 @@ const Admin = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Wrapper function to handle loading state
+  const withLoading = async (loadingSetter, asyncFunction) => {
+    loadingSetter(true);
+    try {
+      await asyncFunction();
+    } finally {
+      loadingSetter(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -82,67 +93,69 @@ const Admin = () => {
   const handleAccept = async () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
-    try {
-      // Check if user is already in cheaters collection
-      const cheatersRef = collection(db, 'cheaters');
-      const existingCheaterQuery = query(cheatersRef, where('username', '==', report.username.toLowerCase()));
-      const existingCheaterSnapshot = await getDocs(existingCheaterQuery);
-      
-      if (!existingCheaterSnapshot.empty) {
-        setMessage({ type: 'error', text: 'User is already marked as a cheater in the database.' });
-        return;
-      }
-      
-      // Add to cheaters collection with lowercase username
-      await addDoc(collection(db, 'cheaters'), {
-        username: report.username.toLowerCase(), // Ensure lowercase storage
-        evidence: report.evidence,
-        reportedAt: report.reportedAt || new Date(),
-      });
-      
-      // Mark current report as accepted
-      await updateDoc(doc(db, 'reports', report.id), { status: 'accepted' });
-      
-      // Find and actually delete all other pending reports for the same username
-      const reportsRef = collection(db, 'reports');
-      const duplicateQuery = query(
-        reportsRef, 
-        where('username', '==', report.username.toLowerCase()),
-        where('status', '==', 'pending')
-      );
-      const duplicateSnapshot = await getDocs(duplicateQuery);
-      
-      const deletePromises = duplicateSnapshot.docs.map(doc => {
-        if (doc.id !== report.id) { // Don't delete the one we just accepted
-          return deleteDoc(doc.ref); // Actually delete instead of marking as deleted
-        }
-        return Promise.resolve();
-      });
-      
-      await Promise.all(deletePromises);
-      
-      const deletedCount = duplicateSnapshot.docs.length - 1; // Subtract 1 for the accepted report
-      const messageText = deletedCount > 0 
-        ? `Report accepted and user added to cheaters. ${deletedCount} duplicate pending report(s) were automatically cleaned up.`
-        : 'Report accepted and user added to cheaters.';
-      
-      setMessage({ type: 'success', text: messageText });
-      fetchPendingReports(currentIndex);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to accept report.' });
+    
+    // Check if user is already in cheaters collection
+    const cheatersRef = collection(db, 'cheaters');
+    const existingCheaterQuery = query(cheatersRef, where('username', '==', report.username.toLowerCase()));
+    const existingCheaterSnapshot = await getDocs(existingCheaterQuery);
+    
+    if (!existingCheaterSnapshot.empty) {
+      setMessage({ type: 'error', text: 'User is already marked as a cheater in the database.' });
+      return;
     }
+    
+    // Add to cheaters collection with lowercase username
+    await addDoc(collection(db, 'cheaters'), {
+      username: report.username.toLowerCase(), // Ensure lowercase storage
+      evidence: report.evidence,
+      reportedAt: report.reportedAt || new Date(),
+    });
+    
+    // Mark current report as accepted
+    await updateDoc(doc(db, 'reports', report.id), { status: 'accepted' });
+    
+    // Find and actually delete all other pending reports for the same username
+    const reportsRef = collection(db, 'reports');
+    const duplicateQuery = query(
+      reportsRef, 
+      where('username', '==', report.username.toLowerCase()),
+      where('status', '==', 'pending')
+    );
+    const duplicateSnapshot = await getDocs(duplicateQuery);
+    
+    const deletePromises = duplicateSnapshot.docs.map(doc => {
+      if (doc.id !== report.id) { // Don't delete the one we just accepted
+        return deleteDoc(doc.ref); // Actually delete instead of marking as deleted
+      }
+      return Promise.resolve();
+    });
+    
+    await Promise.all(deletePromises);
+    
+    const deletedCount = duplicateSnapshot.docs.length - 1; // Subtract 1 for the accepted report
+    const messageText = deletedCount > 0 
+      ? `Report accepted and user added to cheaters. ${deletedCount} duplicate pending report(s) were automatically cleaned up.`
+      : 'Report accepted and user added to cheaters.';
+    
+    setMessage({ type: 'success', text: messageText });
+    fetchPendingReports(currentIndex);
   };
 
   const handleDecline = async () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
-    try {
-      await deleteDoc(doc(db, 'reports', report.id));
-      setMessage({ type: 'info', text: 'Report declined.' });
-      fetchPendingReports(currentIndex);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to decline report.' });
-    }
+    
+    await deleteDoc(doc(db, 'reports', report.id));
+    setMessage({ type: 'info', text: 'Report declined.' });
+    fetchPendingReports(currentIndex);
+  };
+
+  const handleAcceptWithLoading = () => {
+    withLoading(setActionLoading, handleAccept);
+  };
+
+  const handleDeclineWithLoading = () => {
+    withLoading(setActionLoading, handleDecline);
   };
 
   const handlePrev = () => {
@@ -392,10 +405,10 @@ const Admin = () => {
                       <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
                     </Box>
                     <Flex gap={4}>
-                      <Button colorScheme="green" onClick={handleAccept}>
+                      <Button colorScheme="green" onClick={handleAcceptWithLoading} isLoading={actionLoading} loadingText="Processing...">
                         Add to Database
                       </Button>
-                      <Button colorScheme="red" onClick={handleDecline}>
+                      <Button colorScheme="red" onClick={handleDeclineWithLoading} isLoading={actionLoading} loadingText="Processing...">
                         Decline Report
                       </Button>
                     </Flex>

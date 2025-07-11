@@ -15,6 +15,17 @@ const AdminAppeals = ({ user: initialUser }) => {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Wrapper function to handle loading state
+  const withLoading = async (loadingSetter, asyncFunction) => {
+    loadingSetter(true);
+    try {
+      await asyncFunction();
+    } finally {
+      loadingSetter(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -66,22 +77,18 @@ const AdminAppeals = ({ user: initialUser }) => {
   };
 
   const handleAcceptAppeal = async (appeal) => {
-    try {
-      const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
-      const cheaterSnapshot = await getDocs(cheaterQuery);
-      if (!cheaterSnapshot.empty) {
-        // Delete all cheater docs for this username
-        const deletePromises = cheaterSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'cheaters', docSnap.id)));
-        await Promise.all(deletePromises);
-      }
-      await deleteDoc(doc(db, 'appeals', appeal.id));
-      const newAppeals = appeals.filter(a => a.id !== appeal.id);
-      setAppeals(newAppeals);
-      setCurrentIndex((i) => Math.max(0, Math.min(i, newAppeals.length - 1)));
-      setMessage({ type: 'success', text: 'Appeal accepted and user completely removed from cheaters.' });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to accept appeal.' });
+    const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
+    const cheaterSnapshot = await getDocs(cheaterQuery);
+    if (!cheaterSnapshot.empty) {
+      // Delete all cheater docs for this username
+      const deletePromises = cheaterSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'cheaters', docSnap.id)));
+      await Promise.all(deletePromises);
     }
+    await deleteDoc(doc(db, 'appeals', appeal.id));
+    const newAppeals = appeals.filter(a => a.id !== appeal.id);
+    setAppeals(newAppeals);
+    setCurrentIndex((i) => Math.max(0, Math.min(i, newAppeals.length - 1)));
+    setMessage({ type: 'success', text: 'Appeal accepted and user completely removed from cheaters.' });
   };
 
   const handleDeclineAppeal = async (appeal) => {
@@ -90,6 +97,14 @@ const AdminAppeals = ({ user: initialUser }) => {
     const newAppeals = appeals.filter(a => a.id !== appeal.id);
     setAppeals(newAppeals);
     setCurrentIndex((i) => Math.max(0, Math.min(i, newAppeals.length - 1)));
+  };
+
+  const handleAcceptAppealWithLoading = (appeal) => {
+    withLoading(setActionLoading, () => handleAcceptAppeal(appeal));
+  };
+
+  const handleDeclineAppealWithLoading = (appeal) => {
+    withLoading(setActionLoading, () => handleDeclineAppeal(appeal));
   };
 
   // Navigation handlers
@@ -272,10 +287,10 @@ const AdminAppeals = ({ user: initialUser }) => {
                   <Text>{appeals[currentIndex]?.cheaterEvidence || 'Not found'}</Text>
                 </Box>
                 <Flex gap={4}>
-                  <Button colorScheme="green" onClick={() => handleAcceptAppeal(appeals[currentIndex])}>
+                  <Button colorScheme="green" onClick={() => handleAcceptAppealWithLoading(appeals[currentIndex])} isLoading={actionLoading} loadingText="Processing...">
                     Accept Appeal
                   </Button>
-                  <Button colorScheme="red" onClick={() => handleDeclineAppeal(appeals[currentIndex])}>
+                  <Button colorScheme="red" onClick={() => handleDeclineAppealWithLoading(appeals[currentIndex])} isLoading={actionLoading} loadingText="Processing...">
                     Decline Appeal
                   </Button>
                 </Flex>
