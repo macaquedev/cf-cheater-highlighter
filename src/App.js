@@ -12,6 +12,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import Appeal from './pages/Appeal';
 import AdminAppeals from './pages/AdminAppeals';
+import AdminSearch from './pages/AdminSearch';
 
 function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
   return (
@@ -21,9 +22,10 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
         <HStack spacing={4}>
           <Button variant="ghost" as={Link} to="/">Home</Button>
           <Button variant="ghost" as={Link} to="/reportCheaters">Report</Button>
-          <Button variant="ghost" as={Link} to="/search">Search</Button>
-          {!user && (
-            <Button variant="ghost" as={Link} to="/appeal">Appeal</Button>
+          {user ? (
+            <Button variant="ghost" as={Link} to="/admin/search">Search</Button>
+          ) : (
+            <Button variant="ghost" as={Link} to="/search">Search</Button>
           )}
           {user && (
             <>
@@ -35,6 +37,9 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
               </Button>
               <Button variant="outline" size="sm" onClick={onLogout}>Logout</Button>
             </>
+          )}
+          {!user && (
+            <Button variant="ghost" as={Link} to="/appeal">Appeal</Button>
           )}
           <ColorModeButton />
         </HStack>
@@ -101,7 +106,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Home user={user} />} />
             <Route path="/reportCheaters" element={<ReportCheaters user={user} />} />
-            <Route path="/search" element={<Search user={user} />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/admin/search" element={<AdminSearch user={user} />} />
             <Route path="/admin" element={
               <Admin 
                 user={user}
