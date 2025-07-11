@@ -265,26 +265,26 @@ const Search = ({ user }) => {
                       <Table.Cell>
                         <HStack spacing={2}>
                           <Button 
-                            colorScheme="blue" 
+                            colorPalette="blue" 
                             size="sm" 
                             onClick={() => handleSeeEvidence(cheater.evidence)}
                           >
                             See evidence
                           </Button>
                           <Button 
-                            colorScheme="orange" 
+                            colorPalette="orange" 
                             size="sm" 
                             onClick={() => handleMoveToPending(cheater.id, cheater.username, cheater.evidence)}
-                            isLoading={actionLoading}
+                            loading={actionLoading}
                             loadingText="Moving..."
                           >
                             Move to pending
                           </Button>
                           <Button 
-                            colorScheme="red" 
+                            colorPalette="red" 
                             size="sm" 
                             onClick={() => handleRemoveFromDatabase(cheater.id, cheater.username)}
-                            isLoading={actionLoading}
+                            loading={actionLoading}
                             loadingText="Removing..."
                           >
                             Remove
@@ -392,7 +392,7 @@ const Search = ({ user }) => {
                 </Dialog.Body>
                 <Dialog.Footer>
                   <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-                  <Button colorScheme="red" onClick={confirmDelete} ml={3} isLoading={actionLoading}>Delete</Button>
+                  <Button colorPalette="red" onClick={confirmDelete} ml={3} loading={actionLoading}>Delete</Button>
                 </Dialog.Footer>
               </Dialog.Content>
             </Dialog.Positioner>
@@ -415,7 +415,7 @@ const Search = ({ user }) => {
                 </Dialog.Body>
                 <Dialog.Footer>
                   <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>Cancel</Button>
-                  <Button colorScheme="orange" onClick={confirmMoveToPending} ml={3} isLoading={actionLoading}>Move to Pending</Button>
+                  <Button colorPalette="orange" onClick={confirmMoveToPending} ml={3} loading={actionLoading}>Move to Pending</Button>
                 </Dialog.Footer>
               </Dialog.Content>
             </Dialog.Positioner>
@@ -464,7 +464,7 @@ const Search = ({ user }) => {
                 mt={1}
               />
             </Box>
-            <Button colorScheme="blue" type="submit" isLoading={loading} w="full" size="lg">
+            <Button colorPalette="blue" type="submit" loading={loading} w="full" size="lg">
               Search
             </Button>
           </VStack>
@@ -559,19 +559,19 @@ const Search = ({ user }) => {
                     <Text fontWeight="semibold" mb={3} color="yellow.800" _dark={{ color: "yellow.200" }}>Admin Actions:</Text>
                     <HStack spacing={3}>
                       <Button 
-                        colorScheme="orange" 
+                        colorPalette="orange" 
                         size="sm" 
                         onClick={() => handleMoveToPending(result.docId, username, result.evidence)}
-                        isLoading={actionLoading}
+                        loading={actionLoading}
                         loadingText="Moving..."
                       >
                         Move back to pending
                       </Button>
                       <Button 
-                        colorScheme="red" 
+                        colorPalette="red" 
                         size="sm" 
                         onClick={() => handleRemoveFromDatabase(result.docId, username)}
-                        isLoading={actionLoading}
+                        loading={actionLoading}
                         loadingText="Removing..."
                       >
                         Remove from database

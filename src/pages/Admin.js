@@ -259,7 +259,7 @@ const Admin = () => {
                     mt={1}
                   />
                 </Box>
-                <Button colorScheme="blue" type="submit" isLoading={authLoading}>
+                <Button colorPalette="blue" type="submit" loading={authLoading}>
                   Login
                 </Button>
               </VStack>
@@ -405,10 +405,10 @@ const Admin = () => {
                       <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
                     </Box>
                     <Flex gap={4}>
-                      <Button colorScheme="green" onClick={handleAcceptWithLoading} isLoading={actionLoading} loadingText="Processing...">
+                      <Button colorPalette="green" onClick={handleAcceptWithLoading} loading={actionLoading} loadingText="Processing...">
                         Add to Database
                       </Button>
-                      <Button colorScheme="red" onClick={handleDeclineWithLoading} isLoading={actionLoading} loadingText="Processing...">
+                      <Button colorPalette="red" onClick={handleDeclineWithLoading} loading={actionLoading} loadingText="Processing...">
                         Decline Report
                       </Button>
                     </Flex>

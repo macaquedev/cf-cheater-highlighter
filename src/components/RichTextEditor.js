@@ -145,7 +145,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows =
           variant="ghost"
           onClick={() => setIsPreviewMode(!isPreviewMode)}
           aria-label={isPreviewMode ? "Edit Mode" : "Preview Mode"}
-          colorScheme={isPreviewMode ? "blue" : "gray"}
+          colorPalette={isPreviewMode ? "blue" : "gray"}
         >
           {isPreviewMode ? <LuPencil /> : <LuEye />}
         </IconButton>
@@ -162,7 +162,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows =
               size="sm"
               onKeyPress={(e) => e.key === 'Enter' && addLink()}
             />
-            <Button size="sm" onClick={addLink} colorScheme="blue">
+            <Button size="sm" onClick={addLink} colorPalette="blue">
               Add
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowLinkInput(false)}>

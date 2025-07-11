@@ -166,7 +166,7 @@ const AdminAppeals = ({ user: initialUser }) => {
                     mt={1}
                   />
                 </Box>
-                <Button colorScheme="blue" type="submit" w="full" size="lg" isLoading={authLoading} loadingText="Signing in...">
+                <Button colorPalette="blue" type="submit" w="full" size="lg" loading={authLoading} loadingText="Signing in...">
                   Login
                 </Button>
               </VStack>
@@ -287,10 +287,10 @@ const AdminAppeals = ({ user: initialUser }) => {
                   <Text>{appeals[currentIndex]?.cheaterEvidence || 'Not found'}</Text>
                 </Box>
                 <Flex gap={4}>
-                  <Button colorScheme="green" onClick={() => handleAcceptAppealWithLoading(appeals[currentIndex])} isLoading={actionLoading} loadingText="Processing...">
+                  <Button colorPalette="green" onClick={() => handleAcceptAppealWithLoading(appeals[currentIndex])} loading={actionLoading} loadingText="Processing...">
                     Accept Appeal
                   </Button>
-                  <Button colorScheme="red" onClick={() => handleDeclineAppealWithLoading(appeals[currentIndex])} isLoading={actionLoading} loadingText="Processing...">
+                  <Button colorPalette="red" onClick={() => handleDeclineAppealWithLoading(appeals[currentIndex])} loading={actionLoading} loadingText="Processing...">
                     Decline Appeal
                   </Button>
                 </Flex>

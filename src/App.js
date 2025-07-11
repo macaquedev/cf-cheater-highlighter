@@ -8,7 +8,8 @@ import ReportCheaters from './pages/ReportCheaters';
 import Search from './pages/Search';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
+import { useCollection } from 'react-firebase-hooks/firestore';
 import Appeal from './pages/Appeal';
 import AdminAppeals from './pages/AdminAppeals';
 
@@ -45,8 +46,15 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pendingCount, setPendingCount] = useState(null);
-  const [pendingAppealsCount, setPendingAppealsCount] = useState(null);
+
+  // Real-time queries for pending reports and appeals
+  const pendingReportsQuery = user ? query(collection(db, 'reports'), where('status', '==', 'pending')) : null;
+  const pendingAppealsQuery = user ? query(collection(db, 'appeals'), where('status', '!=', 'declined')) : null;
+
+  // Use react-firebase-hooks for real-time updates - useCollection is more efficient for counts
+  const [pendingReportsSnapshot, pendingReportsLoading, pendingReportsError] = useCollection(pendingReportsQuery);
+
+  const [pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError] = useCollection(pendingAppealsQuery);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -56,26 +64,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!user) {
-      setPendingCount(null);
-      setPendingAppealsCount(null);
-      return;
-    }
-    const fetchPending = async () => {
-      const q = query(collection(db, 'reports'), where('status', '==', 'pending'));
-      const snapshot = await getDocs(q);
-      setPendingCount(snapshot.size);
-    };
-    const fetchPendingAppeals = async () => {
-      const q = query(collection(db, 'appeals'), where('status', '!=', 'declined'));
-      const snapshot = await getDocs(q);
-      setPendingAppealsCount(snapshot.size);
-    };
-    fetchPending();
-    fetchPendingAppeals();
-  }, [user]);
-
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -83,6 +71,14 @@ function App() {
       console.error('Logout error:', error);
     }
   };
+
+  // Handle any errors from the hooks
+  if (pendingReportsError) {
+    console.error('Error fetching pending reports:', pendingReportsError);
+  }
+  if (pendingAppealsError) {
+    console.error('Error fetching pending appeals:', pendingAppealsError);
+  }
 
   if (loading) {
     return (
@@ -93,23 +89,26 @@ function App() {
   }
 
   return (
-    <ColorModeProvider>
-      <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }}>
-        <Router>
-          <Navbar user={user} onLogout={handleLogout} pendingCount={pendingCount} pendingAppealsCount={pendingAppealsCount} />
-          <Box as="main" py={8}>
-            <Routes>
-              <Route path="/" element={<Home user={user} />} />
-              <Route path="/reportCheaters" element={<ReportCheaters user={user} />} />
-              <Route path="/search" element={<Search user={user} />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/appeals" element={<AdminAppeals user={user} />} />
-              <Route path="/appeal" element={<Appeal />} />
-            </Routes>
-          </Box>
-        </Router>
-      </Box>
-    </ColorModeProvider>
+    <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }}>
+      <Router>
+        <Navbar 
+          user={user} 
+          onLogout={handleLogout} 
+          pendingCount={pendingReportsSnapshot?.size || 0} 
+          pendingAppealsCount={pendingAppealsSnapshot?.size || 0} 
+        />
+        <Box as="main" py={8}>
+          <Routes>
+            <Route path="/" element={<Home user={user} />} />
+            <Route path="/reportCheaters" element={<ReportCheaters user={user} />} />
+            <Route path="/search" element={<Search user={user} />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/appeals" element={<AdminAppeals user={user} />} />
+            <Route path="/appeal" element={<Appeal />} />
+          </Routes>
+        </Box>
+      </Router>
+    </Box>
   );
 }
 

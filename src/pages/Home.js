@@ -39,7 +39,7 @@ function Home({ user }) {
               <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
                 Submit evidence of suspicious behavior or cheating on Codeforces
               </Text>
-              <Button colorScheme="red" size="lg" as="a" href="/reportCheaters" w="full">
+              <Button colorPalette="red" size="lg" as="a" href="/reportCheaters" w="full">
                 Report Now
               </Button>
             </Box>
@@ -64,7 +64,7 @@ function Home({ user }) {
               <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
                 Look up users to see if they have been reported for cheating
               </Text>
-              <Button colorScheme="blue" size="lg" as="a" href="/search" w="full">
+              <Button colorPalette="blue" size="lg" as="a" href="/search" w="full">
                 Search
               </Button>
             </Box>
@@ -91,7 +91,7 @@ function Home({ user }) {
               <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
                 Review and manage reported cheaters
               </Text>
-              <Button colorScheme="green" size="lg" as="a" href="/admin" w="full">
+              <Button colorPalette="green" size="lg" as="a" href="/admin" w="full">
                 Access Admin Panel
               </Button>
             </Box>
@@ -118,7 +118,7 @@ function Home({ user }) {
               <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
                 If you believe you were wrongly marked as a cheater, you can submit an appeal for review by the administrators.
               </Text>
-              <Button colorScheme="orange" size="lg" as="a" href="/appeal" w="full">
+              <Button colorPalette="orange" size="lg" as="a" href="/appeal" w="full">
                 Appeal
               </Button>
             </Box>

@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/react';
+import { Box, Heading, Text, Input, Button, VStack, Link, Spinner, ButtonPropsProvider } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
@@ -10,6 +10,8 @@ const ReportCheaters = ({ user }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [message, setMessage] = useState(null);
+
+
 
   // Auto-dismiss message after 15 seconds
   useEffect(() => {
@@ -34,7 +36,6 @@ const ReportCheaters = ({ user }) => {
       return;
     }
 
-    setIsSubmitting(true);
     setIsChecking(true);
     try {
       // Convert username to lowercase and remove all whitespace for case-insensitive, space-insensitive storage
@@ -45,7 +46,6 @@ const ReportCheaters = ({ user }) => {
       const cfData = await cfResponse.json();
       if (cfData.status !== 'OK' || !cfData.result || cfData.result.length === 0) {
         setMessage({ type: 'error', text: `User "${normalizedUsername}" does not exist on Codeforces. Please check the username and try again.` });
-        setIsSubmitting(false);
         setIsChecking(false);
         return;
       }
@@ -60,7 +60,6 @@ const ReportCheaters = ({ user }) => {
           type: 'error', 
           text: `User "${username}" is already marked as a cheater in the database. No additional reports are needed.` 
         });
-        setIsSubmitting(false);
         setIsChecking(false);
         return;
       }
@@ -83,6 +82,10 @@ const ReportCheaters = ({ user }) => {
       //   setIsChecking(false);
       //   return;
       // }
+      
+      // Switch to submitting state
+      setIsChecking(false);
+      setIsSubmitting(true);
       
       // Submit the new report
       await addDoc(collection(db, 'reports'), {
@@ -231,13 +234,12 @@ const ReportCheaters = ({ user }) => {
             </Box>
             
             <Button 
-              colorScheme="blue" 
+              colorPalette="blue" 
               type="submit" 
               w="full" 
               size="lg"
-              isLoading={isSubmitting || isChecking}
-              loadingText={isChecking ? "Checking..." : "Submitting..."}
-              disabled={isSubmitting || isChecking}
+              loading={isSubmitting || isChecking}
+              loadingText={isChecking ? "Checking username..." : "Submitting report..."}
             >
               Submit Report
             </Button>

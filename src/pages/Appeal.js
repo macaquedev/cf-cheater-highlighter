@@ -172,10 +172,10 @@ const Appeal = () => {
           </Text>
           <Button 
             size="sm" 
-            colorScheme="gray" 
+            colorPalette="gray" 
             variant="outline"
             onClick={handleRerollProblem}
-            isLoading={rerollLoading}
+            loading={rerollLoading}
             loadingText="Rerolling..."
           >
             <Icon as={FiRefreshCw} />
@@ -222,7 +222,7 @@ const Appeal = () => {
                 rows={4}
               />
             </Box>
-            <Button colorScheme="blue" type="submit" w="full" size="lg" disabled={appealDisabled}>
+            <Button colorPalette="blue" type="submit" w="full" size="lg" loading={appealDisabled}>
               Submit Appeal
             </Button>
           </VStack>
