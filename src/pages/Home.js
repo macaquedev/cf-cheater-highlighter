@@ -92,7 +92,7 @@ function Home({ user }) {
               <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
                 Review and manage reported cheaters
               </Text>
-              <Button colorPalette="green" size="lg" as={Link} to="/admin" w="full">
+              <Button colorPalette="green" size="lg" as={Link} to="/admin/reports" w="full">
                 Access Admin Panel
               </Button>
             </Box>

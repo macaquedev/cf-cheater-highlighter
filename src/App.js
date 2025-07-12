@@ -6,7 +6,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { ColorModeButton } from './components/ui/color-mode';
 import ReportCheaters from './pages/ReportCheaters';
 import Search from './pages/Search';
-import Admin from './pages/Admin';
+import AdminReports from './pages/AdminReports';
+import AdminLogin from './pages/AdminLogin';
 import Home from './pages/Home';
 import { collection, query, where } from 'firebase/firestore';
 import { useCollection } from 'react-firebase-hooks/firestore';
@@ -29,7 +30,7 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
           )}
           {user && (
             <>
-              <Button variant="ghost" as={Link} to="/admin">
+              <Button variant="ghost" as={Link} to="/admin/reports">
                 Review reports{typeof pendingCount === 'number' ? ` (${pendingCount})` : ''}
               </Button>
               <Button variant="ghost" as={Link} to="/admin/appeals">
@@ -108,8 +109,11 @@ function App() {
             <Route path="/reportCheaters" element={<ReportCheaters user={user} />} />
             <Route path="/search" element={<Search />} />
             <Route path="/admin/search" element={<AdminSearch user={user} />} />
-            <Route path="/admin" element={
-              <Admin 
+            {/* Admin login page */}
+            <Route path="/admin" element={<AdminLogin />} />
+            {/* Review reports page (protected) */}
+            <Route path="/admin/reports" element={
+              <AdminReports 
                 user={user}
                 pendingReportsSnapshot={pendingReportsSnapshot}
                 pendingReportsLoading={pendingReportsLoading}

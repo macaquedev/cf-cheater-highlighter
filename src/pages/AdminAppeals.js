@@ -2,20 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Heading, VStack, Text, HStack, Input, Flex } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { Link } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError }) => {
   const [user, setUser] = useState(initialUser || null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authMessage, setAuthMessage] = useState(null);
   const [appeals, setAppeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const navigate = useNavigate();
 
   // Wrapper function to handle loading state
   const withLoading = async (loadingSetter, asyncFunction) => {
@@ -33,6 +30,13 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
     });
     return () => unsubscribe();
   }, []);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
 
   // Use the Firebase hook data passed from App.js
   useEffect(() => {
@@ -78,21 +82,6 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
       setMessage({ type: 'error', text: 'Failed to fetch appeals.' });
     }
   }, [pendingAppealsError]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthMessage(null);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      setEmail('');
-      setPassword('');
-    } catch (error) {
-      setAuthMessage({ type: 'error', text: error.message });
-    } finally {
-      setAuthLoading(false);
-    }
-  };
 
   const handleAcceptAppeal = async (appeal) => {
     const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
@@ -141,52 +130,11 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [user, appeals.length]);
 
+  // Show loading while checking authentication
   if (!user) {
     return (
-      <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }} py={8} px={4}>
-        <Flex align="center" justify="center" minH="70vh">
-          <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md" maxW="lg" w="100%">
-            <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">
-              Admin Panel
-            </Heading>
-            {authMessage && (
-              <Box p={4} mb={4} rounded="md" bg="red.100" color="red.800" borderWidth={1} borderColor="red.200" _dark={{ bg: 'red.900', color: 'red.200', borderColor: 'red.700' }}>
-                <Text>{authMessage.text}</Text>
-              </Box>
-            )}
-            <form onSubmit={handleLogin}>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <label htmlFor="email" style={{ color: 'inherit' }}>Email</label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter admin email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    mt={1}
-                  />
-                </Box>
-                <Box>
-                  <label htmlFor="password" style={{ color: 'inherit' }}>Password</label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    mt={1}
-                  />
-                </Box>
-                <Button colorPalette="blue" type="submit" w="full" size="lg" loading={authLoading} loadingText="Signing in...">
-                  Login
-                </Button>
-              </VStack>
-            </form>
-          </Box>
-        </Flex>
+      <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }} display="flex" alignItems="center" justifyContent="center">
+        <Text>Loading...</Text>
       </Box>
     );
   }

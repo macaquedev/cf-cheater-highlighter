@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal } from '@chakra-ui/react';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy, startAfter, endBefore, limit } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
-const AdminSearch = ({ user }) => {
+const AdminSearch = ({ user: initialUser }) => {
+  const [user, setUser] = useState(initialUser || null);
   const [allCheaters, setAllCheaters] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,10 +15,9 @@ const AdminSearch = ({ user }) => {
   const [selectedEvidence, setSelectedEvidence] = useState('');
   // Pagination states
   const [pageSize] = useState(20);
-  const [lastVisible, setLastVisible] = useState(null);
-  const [firstVisible, setFirstVisible] = useState(null);
-  const [cheaterDocs, setCheaterDocs] = useState([]); // Store current page docs
-  const [pageHistory, setPageHistory] = useState([]); // For Previous button
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
+  const [totalPages, setTotalPages] = useState(1); // Total number of pages
 
   // State for delete confirmation modal
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -25,6 +27,21 @@ const AdminSearch = ({ user }) => {
   const [moveTarget, setMoveTarget] = useState(null); // { id, username, evidence }
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
 
   // Auto-dismiss message after 15 seconds
   useEffect(() => {
@@ -37,18 +54,50 @@ const AdminSearch = ({ user }) => {
   // Fetch cheaters on mount and when user/searchTerm changes
   useEffect(() => {
     if (user) {
-      fetchCheaters(searchTerm, 'next');
+      setCurrentPage(1); // Reset to first page when search changes
+      fetchCheaters(searchTerm);
+      fetchTotalCheaters(searchTerm);
     }
     // eslint-disable-next-line
   }, [user, searchTerm]);
+
+  // Refetch data when currentPage changes
+  useEffect(() => {
+    if (user && currentPage > 1) {
+      fetchCheaters(searchTerm);
+    }
+    // eslint-disable-next-line
+  }, [currentPage]);
 
   const showMessage = (text, type = 'info') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
   };
 
-  // Fetch cheaters with pagination and server-side filtering
-  const fetchCheaters = async (search = '', direction = 'next') => {
+  // Fetch total count of cheaters for display
+  const fetchTotalCheaters = async (search = '') => {
+    try {
+      let cheatersRef = collection(db, 'cheaters');
+      let q;
+      if (search) {
+        q = query(
+          cheatersRef,
+          where('username', '>=', search.toLowerCase()),
+          where('username', '<=', search.toLowerCase() + '\uf8ff')
+        );
+      } else {
+        q = query(cheatersRef);
+      }
+      const querySnapshot = await getDocs(q);
+      setTotalCheaters(querySnapshot.size);
+    } catch (error) {
+      console.error('Error fetching total cheaters:', error);
+      setTotalCheaters(0);
+    }
+  };
+
+  // Fetch cheaters with page-based pagination
+  const fetchCheaters = async (search = '') => {
     setTableLoading(true);
     try {
       let cheatersRef = collection(db, 'cheaters');
@@ -59,35 +108,30 @@ const AdminSearch = ({ user }) => {
           where('username', '>=', search.toLowerCase()),
           where('username', '<=', search.toLowerCase() + '\uf8ff'),
           orderBy('username'),
-          orderBy('reportedAt', 'desc'),
-          limit(pageSize)
+          orderBy('reportedAt', 'desc')
         );
       } else {
         q = query(
           cheatersRef,
-          orderBy('reportedAt', 'desc'),
-          limit(pageSize)
+          orderBy('reportedAt', 'desc')
         );
       }
-      if (direction === 'next' && lastVisible) {
-        q = query(q, startAfter(lastVisible));
-      } else if (direction === 'prev' && firstVisible) {
-        q = query(q, endBefore(firstVisible));
-      }
+      
+      // Get all documents for the current search
       const querySnapshot = await getDocs(q);
-      const cheaters = [];
+      const allCheaters = [];
       querySnapshot.forEach((doc) => {
-        cheaters.push({ id: doc.id, ...doc.data() });
+        allCheaters.push({ id: doc.id, ...doc.data() });
       });
-      setAllCheaters(cheaters);
-      setCheaterDocs(querySnapshot.docs);
-      setFirstVisible(querySnapshot.docs[0] || null);
-      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1] || null);
-      if (direction === 'next') {
-        setPageHistory((prev) => [...prev, querySnapshot.docs[0]]);
-      } else if (direction === 'prev') {
-        setPageHistory((prev) => prev.slice(0, -1));
-      }
+      
+      // Calculate pagination
+      const calculatedTotalPages = Math.ceil(allCheaters.length / pageSize);
+      setTotalPages(calculatedTotalPages);
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageCheaters = allCheaters.slice(startIndex, endIndex);
+      
+      setAllCheaters(pageCheaters);
     } catch (error) {
       showMessage('Error fetching cheaters: ' + error.message, 'error');
     } finally {
@@ -124,7 +168,7 @@ const AdminSearch = ({ user }) => {
       });
       await deleteDoc(doc(db, 'cheaters', moveTarget.id));
       showMessage(`User "${moveTarget.username}" has been moved back to pending review.`, 'success');
-      fetchCheaters(searchTerm, 'next');
+      fetchCheaters(searchTerm);
     } catch (error) {
       showMessage('Error moving user to pending: ' + error.message, 'error');
     } finally {
@@ -148,7 +192,7 @@ const AdminSearch = ({ user }) => {
       await deleteAllReportsForUsername(deleteTarget.username);
       await deleteDoc(doc(db, 'cheaters', deleteTarget.id));
       showMessage(`User "${deleteTarget.username}" has been completely removed from the database.`, 'success');
-      fetchCheaters(searchTerm, 'next');
+      fetchCheaters(searchTerm);
     } catch (error) {
       showMessage('Error removing user: ' + error.message, 'error');
     } finally {
@@ -162,6 +206,15 @@ const AdminSearch = ({ user }) => {
     setSelectedEvidence(evidence);
     setEvidenceModalOpen(true);
   };
+
+  // Show loading while checking authentication
+  if (!user) {
+    return (
+      <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }} display="flex" alignItems="center" justifyContent="center">
+        <Text>Loading...</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box maxW="6xl" mx="auto" px={6}>
@@ -257,23 +310,31 @@ const AdminSearch = ({ user }) => {
             {/* Pagination controls */}
             <HStack justify="center" mt={4} spacing={4}>
               <Button
-                onClick={() => fetchCheaters(searchTerm, 'prev')}
-                isDisabled={pageHistory.length <= 1}
+                onClick={() => {
+                  setCurrentPage(prev => Math.max(1, prev - 1));
+                  fetchCheaters(searchTerm);
+                }}
+                isDisabled={currentPage <= 1}
               >
                 Previous
               </Button>
               <Button
-                onClick={() => fetchCheaters(searchTerm, 'next')}
-                isDisabled={allCheaters.length < pageSize}
+                onClick={() => {
+                  setCurrentPage(prev => prev + 1);
+                  fetchCheaters(searchTerm);
+                }}
+                isDisabled={currentPage >= totalPages}
               >
                 Next
               </Button>
             </HStack>
           </Box>
         )}
-        <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }} mt={4} textAlign="center">
-          Showing {allCheaters.length} cheaters (page size: {pageSize})
-        </Text>
+        {!tableLoading && (
+          <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }} mt={4} textAlign="center">
+            Page {currentPage} of {totalPages} • {allCheaters.length} of {totalCheaters} cheaters
+          </Text>
+        )}
       </Box>
       {/* Evidence Modal */}
       <Dialog.Root open={evidenceModalOpen} onOpenChange={(e) => setEvidenceModalOpen(e.open)}>
