@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal } from '@chakra-ui/react';
+import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -99,6 +99,7 @@ const AdminSearch = ({ user: initialUser }) => {
   // Fetch cheaters with page-based pagination
   const fetchCheaters = async (search = '') => {
     setTableLoading(true);
+    
     try {
       let cheatersRef = collection(db, 'cheaters');
       let q;
@@ -218,7 +219,7 @@ const AdminSearch = ({ user: initialUser }) => {
 
   return (
     <Box maxW="6xl" mx="auto" px={6}>
-      <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md">
+      <Box bg="gray.50" _dark={{ bg: "gray.900" }} p={8} rounded="md" shadow="md">
         {message && (
           <Box 
             p={4} 
@@ -238,7 +239,7 @@ const AdminSearch = ({ user: initialUser }) => {
             <Text>{message.text}</Text>
           </Box>
         )}
-                  <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">Admin Search</Heading>
+        <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">Admin Search</Heading>
         {/* Search input for filtering */}
         <Box mb={6}>
           <Input
@@ -248,9 +249,7 @@ const AdminSearch = ({ user: initialUser }) => {
             size="lg"
           />
         </Box>
-        {tableLoading ? (
-          <Text textAlign="center" py={8}>Loading cheaters...</Text>
-        ) : allCheaters.length === 0 ? (
+        {allCheaters.length === 0 && !tableLoading ? (
           <Text textAlign="center" py={8} color="gray.500" _dark={{ color: "gray.400" }}>
             {searchTerm ? 'No cheaters found matching your search.' : 'No cheaters in the database.'}
           </Text>
@@ -259,48 +258,61 @@ const AdminSearch = ({ user: initialUser }) => {
             <Table.Root variant="simple">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeader>Username</Table.ColumnHeader>
-                  <Table.ColumnHeader>Date Reported</Table.ColumnHeader>
-                  <Table.ColumnHeader>Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader width="25%">Username</Table.ColumnHeader>
+                  <Table.ColumnHeader width="20%">Date Reported</Table.ColumnHeader>
+                  <Table.ColumnHeader width="55%">Actions</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {allCheaters.map((cheater) => (
-                  <Table.Row key={cheater.id}>
-                    <Table.Cell fontWeight="medium">{cheater.username}</Table.Cell>
-                    <Table.Cell>
-                      {cheater.reportedAt?.toDate 
-                        ? cheater.reportedAt.toDate().toLocaleDateString() 
-                        : new Date(cheater.reportedAt).toLocaleDateString()
-                      }
+                {(tableLoading ? Array.from({ length: pageSize }) : allCheaters).map((cheater, idx) => (
+                  <Table.Row key={cheater?.id || idx}>
+                    <Table.Cell fontWeight="medium" whiteSpace="nowrap">
+                      <Skeleton loading={tableLoading} height="24px">
+                        {cheater?.username}
+                      </Skeleton>
                     </Table.Cell>
                     <Table.Cell>
-                      <HStack spacing={2}>
-                        <Button 
-                          colorPalette="blue" 
-                          size="sm" 
-                          onClick={() => handleSeeEvidence(cheater.evidence)}
-                        >
-                          See evidence
-                        </Button>
-                        <Button 
-                          colorPalette="orange" 
-                          size="sm" 
-                          onClick={() => handleMoveToPending(cheater.id, cheater.username, cheater.evidence)}
-                          loading={actionLoading}
-                          loadingText="Moving..."
-                        >
-                          Move to pending
-                        </Button>
-                        <Button 
-                          colorPalette="red" 
-                          size="sm" 
-                          onClick={() => handleRemoveFromDatabase(cheater.id, cheater.username)}
-                          loading={actionLoading}
-                          loadingText="Removing..."
-                        >
-                          Remove
-                        </Button>
+                      <Skeleton loading={tableLoading} height="24px" width="100px">
+                        {cheater
+                          ? (cheater.reportedAt?.toDate
+                              ? cheater.reportedAt.toDate().toLocaleDateString()
+                              : new Date(cheater.reportedAt).toLocaleDateString())
+                          : ''}
+                      </Skeleton>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <HStack spacing={4}>
+                        <Skeleton loading={tableLoading} height="32px" borderRadius="md">
+                          <Button
+                            colorPalette="blue"
+                            size="sm"
+                            onClick={() => handleSeeEvidence(cheater.evidence)}
+                          >
+                            See evidence
+                          </Button>
+                        </Skeleton>
+                        <Skeleton loading={tableLoading} height="32px" borderRadius="md">
+                          <Button
+                            colorPalette="orange"
+                            size="sm"
+                            onClick={() => handleMoveToPending(cheater.id, cheater.username, cheater.evidence)}
+                            loading={actionLoading}
+                            loadingText="Moving..."
+                          >
+                            Move to pending
+                          </Button>
+                        </Skeleton>
+                        <Skeleton loading={tableLoading} height="32px" borderRadius="md">
+                          <Button
+                            colorPalette="red"
+                            size="sm"
+                            onClick={() => handleRemoveFromDatabase(cheater.id, cheater.username)}
+                            loading={actionLoading}
+                            loadingText="Removing..."
+                          >
+                            Remove
+                          </Button>
+                        </Skeleton>
                       </HStack>
                     </Table.Cell>
                   </Table.Row>
@@ -309,32 +321,39 @@ const AdminSearch = ({ user: initialUser }) => {
             </Table.Root>
             {/* Pagination controls */}
             <HStack justify="center" mt={4} spacing={4}>
-              <Button
-                onClick={() => {
-                  setCurrentPage(prev => Math.max(1, prev - 1));
-                  fetchCheaters(searchTerm);
-                }}
-                disabled={currentPage <= 1}
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={() => {
-                  setCurrentPage(prev => prev + 1);
-                  fetchCheaters(searchTerm);
-                }}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-              </Button>
+              <Skeleton loading={tableLoading} height="40px" borderRadius="md">
+                <Button
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(1, prev - 1));
+                    fetchCheaters(searchTerm);
+                  }}
+                  disabled={currentPage <= 1 || tableLoading}
+                  loading={tableLoading}
+                >
+                  Previous
+                </Button>
+              </Skeleton>
+              <Skeleton loading={tableLoading} height="40px" borderRadius="md">
+                <Button
+                  onClick={() => {
+                    setCurrentPage(prev => prev + 1);
+                    fetchCheaters(searchTerm);
+                  }}
+                  disabled={currentPage >= totalPages || tableLoading}
+                >
+                  Next
+                </Button>
+              </Skeleton>
             </HStack>
           </Box>
         )}
-        {!tableLoading && (
-          <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }} mt={4} textAlign="center">
-            Page {currentPage} of {totalPages} • {allCheaters.length} of {totalCheaters} cheaters
-          </Text>
-        )}
+        <Box mt={4} textAlign="center">
+          <Skeleton loading={tableLoading} mx="auto" display="inline-block">
+            <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }}>
+              Page {currentPage} of {totalPages} • {allCheaters.length} of {totalCheaters} cheaters
+            </Text>
+          </Skeleton>
+        </Box>
       </Box>
       {/* Evidence Modal */}
       <Dialog.Root open={evidenceModalOpen} onOpenChange={(e) => setEvidenceModalOpen(e.open)}>
