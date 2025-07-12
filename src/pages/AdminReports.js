@@ -13,16 +13,16 @@ const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReport
   const [pendingReports, setPendingReports] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
   const navigate = useNavigate();
 
   // Wrapper function to handle loading state
-  const withLoading = async (loadingSetter, asyncFunction) => {
-    loadingSetter(true);
+  const withLoading = async (loadingType, asyncFunction) => {
+    setActionLoading(loadingType);
     try {
       await asyncFunction();
     } finally {
-      loadingSetter(false);
+      setActionLoading(null);
     }
   };
 
@@ -126,11 +126,11 @@ const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReport
   };
 
   const handleAcceptWithLoading = () => {
-    withLoading(setActionLoading, handleAccept);
+    withLoading('accept', handleAccept);
   };
 
   const handleDeclineWithLoading = () => {
-    withLoading(setActionLoading, handleDecline);
+    withLoading('decline', handleDecline);
   };
 
   const handlePrev = () => {
@@ -258,7 +258,7 @@ const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReport
               <Flex align="center" justify="space-between">
                 <Button
                   onClick={handlePrev}
-                  isDisabled={currentIndex === 0}
+                  disabled={currentIndex === 0}
                   variant="ghost"
                   size="sm"
                 >
@@ -269,7 +269,7 @@ const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReport
                 </Text>
                 <Button
                   onClick={handleNext}
-                  isDisabled={currentIndex === pendingReports.length - 1}
+                  disabled={currentIndex === pendingReports.length - 1}
                   variant="ghost"
                   size="sm"
                 >
@@ -350,10 +350,22 @@ const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReport
                   <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
                 </Box>
                 <Flex gap={4}>
-                  <Button colorPalette="green" onClick={handleAcceptWithLoading} loading={actionLoading} loadingText="Processing...">
+                  <Button 
+                    colorPalette="green" 
+                    onClick={handleAcceptWithLoading} 
+                    loading={actionLoading === 'accept'} 
+                    loadingText="Processing..."
+                    disabled={actionLoading !== null}
+                  >
                     Add to Database
                   </Button>
-                  <Button colorPalette="red" onClick={handleDeclineWithLoading} loading={actionLoading} loadingText="Processing...">
+                  <Button 
+                    colorPalette="red" 
+                    onClick={handleDeclineWithLoading} 
+                    loading={actionLoading === 'decline'} 
+                    loadingText="Processing..."
+                    disabled={actionLoading !== null}
+                  >
                     Decline Report
                   </Button>
                 </Flex>

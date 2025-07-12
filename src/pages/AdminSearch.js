@@ -314,7 +314,7 @@ const AdminSearch = ({ user: initialUser }) => {
                   setCurrentPage(prev => Math.max(1, prev - 1));
                   fetchCheaters(searchTerm);
                 }}
-                isDisabled={currentPage <= 1}
+                disabled={currentPage <= 1}
               >
                 Previous
               </Button>
@@ -323,7 +323,7 @@ const AdminSearch = ({ user: initialUser }) => {
                   setCurrentPage(prev => prev + 1);
                   fetchCheaters(searchTerm);
                 }}
-                isDisabled={currentPage >= totalPages}
+                disabled={currentPage >= totalPages}
               >
                 Next
               </Button>

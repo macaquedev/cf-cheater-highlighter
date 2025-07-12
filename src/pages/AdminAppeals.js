@@ -11,16 +11,16 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
   const navigate = useNavigate();
 
   // Wrapper function to handle loading state
-  const withLoading = async (loadingSetter, asyncFunction) => {
-    loadingSetter(true);
+  const withLoading = async (loadingType, asyncFunction) => {
+    setActionLoading(loadingType);
     try {
       await asyncFunction();
     } finally {
-      loadingSetter(false);
+      setActionLoading(null);
     }
   };
 
@@ -103,11 +103,11 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
   };
 
   const handleAcceptAppealWithLoading = (appeal) => {
-    withLoading(setActionLoading, () => handleAcceptAppeal(appeal));
+    withLoading('accept', () => handleAcceptAppeal(appeal));
   };
 
   const handleDeclineAppealWithLoading = (appeal) => {
-    withLoading(setActionLoading, () => handleDeclineAppeal(appeal));
+    withLoading('decline', () => handleDeclineAppeal(appeal));
   };
 
   // Navigation handlers
@@ -176,7 +176,7 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
               <Flex align="center" justify="space-between">
                 <Button
                   onClick={handlePrev}
-                  isDisabled={currentIndex === 0}
+                  disabled={currentIndex === 0}
                   variant="ghost"
                   size="sm"
                 >
@@ -187,7 +187,7 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
                 </Text>
                 <Button
                   onClick={handleNext}
-                  isDisabled={currentIndex === appeals.length - 1}
+                  disabled={currentIndex === appeals.length - 1}
                   variant="ghost"
                   size="sm"
                 >
@@ -249,10 +249,22 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
                   <Text>{appeals[currentIndex]?.cheaterEvidence || 'Not found'}</Text>
                 </Box>
                 <Flex gap={4}>
-                  <Button colorPalette="green" onClick={() => handleAcceptAppealWithLoading(appeals[currentIndex])} loading={actionLoading} loadingText="Processing...">
+                  <Button 
+                    colorPalette="green" 
+                    onClick={() => handleAcceptAppealWithLoading(appeals[currentIndex])} 
+                    loading={actionLoading === 'accept'} 
+                    loadingText="Processing..."
+                    disabled={actionLoading !== null}
+                  >
                     Accept Appeal
                   </Button>
-                  <Button colorPalette="red" onClick={() => handleDeclineAppealWithLoading(appeals[currentIndex])} loading={actionLoading} loadingText="Processing...">
+                  <Button 
+                    colorPalette="red" 
+                    onClick={() => handleDeclineAppealWithLoading(appeals[currentIndex])} 
+                    loading={actionLoading === 'decline'} 
+                    loadingText="Processing..."
+                    disabled={actionLoading !== null}
+                  >
                     Decline Appeal
                   </Button>
                 </Flex>
