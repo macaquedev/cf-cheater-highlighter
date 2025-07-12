@@ -144,7 +144,7 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
       <Flex align="center" justify="center" minH="70vh">
         <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md" maxW="lg" w="100%">
           <Heading size="lg" mb={6} color="blue.600" _dark={{ color: 'blue.400' }} textAlign="center">
-            Appeals Admin Panel
+            Review Appeals
           </Heading>
           {loading ? (
             <Text>Loading appeals...</Text>

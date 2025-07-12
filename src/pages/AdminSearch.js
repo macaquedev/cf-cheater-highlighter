@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
-import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy, startAfter, endBefore, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -238,7 +238,7 @@ const AdminSearch = ({ user: initialUser }) => {
             <Text>{message.text}</Text>
           </Box>
         )}
-        <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">Cheater Database (Admin View)</Heading>
+                  <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">Admin Search</Heading>
         {/* Search input for filtering */}
         <Box mb={6}>
           <Input
