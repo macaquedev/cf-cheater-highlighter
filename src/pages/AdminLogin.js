@@ -1,28 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box, Button, Heading, VStack, Input, Text, Flex
 } from '@chakra-ui/react';
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../App';
 
 const AdminLogin = () => {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
   // Redirect to admin reports page if already logged in
-  useEffect(() => {
+  React.useEffect(() => {
     if (user) {
       navigate('/admin/reports', { replace: true });
     }
@@ -45,7 +39,7 @@ const AdminLogin = () => {
   };
 
   // Clear error messages when user successfully logs in
-  useEffect(() => {
+  React.useEffect(() => {
     if (user && message && message.type === 'error') {
       setMessage(null);
     }
@@ -118,7 +112,7 @@ const AdminLogin = () => {
                   _dark={{ borderColor: "gray.400" }}
                 />
               </Box>
-              <Button colorPalette="blue" type="submit" loading={authLoading}>
+              <Button colorPalette="blue" type="submit" loading={authLoading} loadingText="Signing in...">
                 Login
               </Button>
             </VStack>

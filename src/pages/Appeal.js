@@ -14,6 +14,7 @@ const Appeal = () => {
   const [verifyContest, setVerifyContest] = useState(null);
   const [verifyProblem, setVerifyProblem] = useState(null);
   const [rerollLoading, setRerollLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState('');
 
   // Wrapper function to handle loading state
   const withLoading = async (loadingSetter, asyncFunction) => {
@@ -123,6 +124,7 @@ const Appeal = () => {
 
   const handleAppealSubmit = async () => {
     // Step 1: Validate form fields
+    setCurrentStep('Validating...');
     if (!validateFormFields()) {
       return;
     }
@@ -130,26 +132,32 @@ const Appeal = () => {
     const normalizedUsername = appealUsername.trim().replace(/\s+/g, '').toLowerCase();
     
     // Step 2: Check if user is in cheaters DB
+    setCurrentStep('Checking database...');
     if (!(await checkUserInCheatersDB(normalizedUsername))) {
       return;
     }
     
     // Step 3: Check if an appeal already exists
+    setCurrentStep('Checking appeals...');
     if (!(await checkExistingAppeal(normalizedUsername))) {
       return;
     }
     
     // Step 4: Verify user identity
+    setCurrentStep('Verifying account...');
     if (!(await verifyUser(normalizedUsername))) {
       return;
     }
     
     // Step 5: Submit the appeal
+    setCurrentStep('Submitting...');
     await submitAppeal(normalizedUsername);
+    setCurrentStep('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setAppealStatus(null); // Clear any previous messages
     setAppealDisabled(true);
     await handleAppealSubmit();
     setAppealDisabled(false);
@@ -164,11 +172,11 @@ const Appeal = () => {
         <Text mb={4} fontSize="sm" color="gray.700" _dark={{ color: 'gray.200' }}>
           If you believe you were wrongly marked as a cheater, you can submit an appeal. Only users currently in the cheater database can appeal. Each user can only appeal once.
           <br/>
-          <b>Before you appeal, you must verify your identity by submitting a compilation error to the problem below.</b>
+          <b>Before you appeal, you must verify your identity by submitting a <u>compilation error</u> to the problem below.</b>
         </Text>
         <Box mb={4}>
           <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.200' }} mb={2}>
-            Current verification problem: <a href={`https://codeforces.com/contest/${verifyContest}/problem/${verifyProblem}`} style={{color: "blue"}} target="_blank" rel="noopener noreferrer">{verifyContest}{verifyProblem}</a>
+            Current verification problem: <a href={`https://codeforces.com/contest/${verifyContest}/problem/${verifyProblem}`} style={{color: "#3182ce", textDecoration: "underline", fontWeight: "500"}} target="_blank" rel="noopener noreferrer">{verifyContest}{verifyProblem}</a>
           </Text>
           <Button 
             size="sm" 
@@ -177,6 +185,9 @@ const Appeal = () => {
             onClick={handleRerollProblem}
             loading={rerollLoading}
             loadingText="Rerolling..."
+            borderWidth={2}
+            borderColor="gray.400"
+            _dark={{ borderColor: "gray.500" }}
           >
             <Icon as={FiRefreshCw} />
             Reroll Problem
@@ -224,7 +235,7 @@ const Appeal = () => {
                 rows={4}
               />
             </Box>
-            <Button colorPalette="blue" type="submit" w="full" size="lg" loading={appealDisabled}>
+            <Button colorPalette="blue" type="submit" w="full" size="lg" loading={appealDisabled} loadingText={currentStep || "Submitting appeal..."}>
               Submit Appeal
             </Button>
           </VStack>

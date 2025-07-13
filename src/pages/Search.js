@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, Input, Heading, VStack, Text } from '@chakra-ui/react';
+import { Box, Button, Input, Heading, VStack, Text, Skeleton } from '@chakra-ui/react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
@@ -96,9 +96,24 @@ const Search = () => {
             </Button>
           </VStack>
         </form>
-        {result && (
+        
+        {/* Search result with skeleton loading */}
+        {loading ? (
+          <Skeleton 
+            mt={8}
+            height="140px" 
+            borderRadius="md"
+            borderWidth={2}
+            borderColor="gray.300"
+            bg="gray.200"
+            _dark={{ 
+              borderColor: "gray.600",
+              bg: "gray.600"
+            }}
+          />
+        ) : result && (
           <Box 
-            mt={8} 
+            mt={8}
             borderWidth={2}
             borderColor={result.status === 'cheater' ? 'red.400' : 'green.400'}
             borderRadius="md"
@@ -115,7 +130,7 @@ const Search = () => {
                   Cheater
                 </Text>
                 <Text color="gray.600" _dark={{ color: "gray.300" }} textAlign="center" fontSize="sm">
-                  This user has been marked as a cheater. Evidence details are only visible to administrators.
+                  This user has been marked as a cheater. Evidence is only visible to administrators.
                 </Text>
                 {result.reportedAt && (
                   <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }} mt={2} textAlign="center">

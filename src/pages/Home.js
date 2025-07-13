@@ -2,8 +2,10 @@ import React from 'react';
 import { Box, VStack, Heading, Text, Button, Container, SimpleGrid, Icon, Flex } from '@chakra-ui/react';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaFlag, FaShieldAlt } from 'react-icons/fa';
+import { useAuth } from '../App';
 
-function Home({ user }) {
+function Home() {
+  const { user } = useAuth();
   return (
     <Container maxW="4xl" py={8}>
       <VStack spacing={12} textAlign="center">

@@ -4,12 +4,12 @@ import {
 } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../App';
 
-const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReportsLoading, pendingReportsError }) => {
-  const [user, setUser] = useState(initialUser || null);
+const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingReportsError }) => {
+  const { user } = useAuth();
   const [pendingReports, setPendingReports] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
@@ -26,12 +26,7 @@ const AdminReports = ({ user: initialUser, pendingReportsSnapshot, pendingReport
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
+
 
   // Redirect to login if not authenticated
   useEffect(() => {

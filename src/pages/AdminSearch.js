@@ -2,16 +2,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import { useAuth } from '../App';
 
 // Constants
 const PAGE_SIZE = 20;
 const THROTTLE_DELAY = 100; // Consistent delay between key presses
 
-const AdminSearch = ({ user: initialUser }) => {
-  const [user, setUser] = useState(initialUser || null);
+const AdminSearch = () => {
+  const { user } = useAuth();
   const [allCheaters, setAllCheaters] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,13 +35,6 @@ const AdminSearch = ({ user: initialUser }) => {
   const navigate = useNavigate();
   const lastKeyPressTime = useRef(0);
   const [cheaterCountCache, setCheaterCountCache] = useState({});
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {

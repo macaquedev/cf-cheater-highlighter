@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import RichTextEditor from '../components/RichTextEditor';
+import { useAuth } from '../App';
 
-const ReportCheaters = ({ user }) => {
+const ReportCheaters = () => {
+  const { user } = useAuth();
   const [username, setUsername] = useState('');
   const [evidence, setEvidence] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

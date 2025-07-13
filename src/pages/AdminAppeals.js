@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Heading, VStack, Text, HStack, Input, Flex } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../App';
 
-const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError }) => {
-  const [user, setUser] = useState(initialUser || null);
+const AdminAppeals = ({ pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError }) => {
+  const { user } = useAuth();
   const [appeals, setAppeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,13 +23,6 @@ const AdminAppeals = ({ user: initialUser, pendingAppealsSnapshot, pendingAppeal
       setActionLoading(null);
     }
   };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {
