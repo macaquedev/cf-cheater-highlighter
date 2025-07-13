@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
@@ -6,15 +6,18 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
+// Constants
+const PAGE_SIZE = 20;
+const THROTTLE_DELAY = 100; // Consistent delay between key presses
+
 const AdminSearch = ({ user: initialUser }) => {
   const [user, setUser] = useState(initialUser || null);
   const [allCheaters, setAllCheaters] = useState([]);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState('');
   // Pagination states
-  const [pageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
   const [totalPages, setTotalPages] = useState(1); // Total number of pages
@@ -27,7 +30,11 @@ const AdminSearch = ({ user: initialUser }) => {
   const [moveTarget, setMoveTarget] = useState(null); // { id, username, evidence }
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [pageCache, setPageCache] = useState({});
+  const [isNavigating, setIsNavigating] = useState(false);
   const navigate = useNavigate();
+  const lastKeyPressTime = useRef(0);
+  const [cheaterCountCache, setCheaterCountCache] = useState({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -51,23 +58,105 @@ const AdminSearch = ({ user: initialUser }) => {
     }
   }, [message]);
 
+  // Keyboard shortcuts for pagination
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return; // Don't trigger shortcuts when typing in input fields
+      }
+      
+      const now = Date.now();
+      
+      switch (event.key) {
+        case 'ArrowLeft': {
+          event.preventDefault();
+          if (totalCheaters === 0) return; // Prevent navigation if total not loaded
+          const prevPage = Math.max(1, currentPage - 1);
+          if (prevPage !== currentPage && now - lastKeyPressTime.current >= THROTTLE_DELAY) {
+            lastKeyPressTime.current = now;
+            setCurrentPage(prevPage);
+            // Set navigating state on repeated events (not first press) and only if page changes
+            if (event.repeat) {
+              setIsNavigating(true);
+            }
+          }
+          break;
+        }
+        case 'ArrowRight': {
+          event.preventDefault();
+          if (totalCheaters === 0) return; // Prevent navigation if total not loaded
+          const nextPage = currentPage + 1;
+          if (nextPage <= totalPages && now - lastKeyPressTime.current >= THROTTLE_DELAY) {
+            lastKeyPressTime.current = now;
+            setCurrentPage(nextPage);
+            // Set navigating state on repeated events (not first press) and only if page changes
+            if (event.repeat) {
+              setIsNavigating(true);
+            }
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        setIsNavigating(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [currentPage, totalPages, totalCheaters]);
+
+  // Reset navigation state when data finishes loading
+  useEffect(() => {
+    if (!tableLoading && isNavigating) {
+      setIsNavigating(false);
+    }
+  }, [tableLoading, isNavigating]);
+
   // Fetch cheaters on mount and when user/searchTerm changes
   useEffect(() => {
     if (user) {
       setCurrentPage(1); // Reset to first page when search changes
+      setPageCache({}); // Clear cache when search changes
       fetchCheaters(searchTerm);
-      fetchTotalCheaters(searchTerm);
+      if (cheaterCountCache[searchTerm] === undefined) {
+        fetchTotalCheaters(searchTerm);
+      } else {
+        setTotalCheaters(cheaterCountCache[searchTerm]);
+      }
     }
     // eslint-disable-next-line
   }, [user, searchTerm]);
 
+
+
   // Refetch data when currentPage changes
   useEffect(() => {
-    if (user && currentPage > 1) {
+    if (user) {
+      // Check cache before fetching
+      const cacheKey = JSON.stringify([searchTerm, currentPage]);
+      if (pageCache[cacheKey]) {
+        setAllCheaters(pageCache[cacheKey].data);
+        setTotalPages(pageCache[cacheKey].totalPages);
+        setTotalCheaters(Number(pageCache[cacheKey].totalCheaters));
+        setTableLoading(false);
+        return;
+      }
       fetchCheaters(searchTerm);
     }
     // eslint-disable-next-line
   }, [currentPage]);
+
+
 
   const showMessage = (text, type = 'info') => {
     setMessage({ text, type });
@@ -89,15 +178,27 @@ const AdminSearch = ({ user: initialUser }) => {
         q = query(cheatersRef);
       }
       const querySnapshot = await getDocs(q);
-      setTotalCheaters(querySnapshot.size);
+      setTotalCheaters(Number(querySnapshot.size));
+      setCheaterCountCache(prev => ({ ...prev, [search]: Number(querySnapshot.size) }));
     } catch (error) {
       console.error('Error fetching total cheaters:', error);
       setTotalCheaters(0);
     }
   };
 
-  // Fetch cheaters with page-based pagination
+  // Fetch cheaters with page-based pagination and caching
   const fetchCheaters = async (search = '') => {
+    const cacheKey = JSON.stringify([search, currentPage]);
+    
+    // Check cache first
+    if (pageCache[cacheKey]) {
+      setAllCheaters(pageCache[cacheKey].data);
+      setTotalPages(pageCache[cacheKey].totalPages);
+      setTotalCheaters(Number(pageCache[cacheKey].totalCheaters));
+      setTableLoading(false);
+      return;
+    }
+    
     setTableLoading(true);
     
     try {
@@ -126,13 +227,23 @@ const AdminSearch = ({ user: initialUser }) => {
       });
       
       // Calculate pagination
-      const calculatedTotalPages = Math.ceil(allCheaters.length / pageSize);
-      setTotalPages(calculatedTotalPages);
-      const startIndex = (currentPage - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
+      const calculatedTotalPages = Math.ceil(allCheaters.length / PAGE_SIZE);
+      const calculatedTotalCheaters = allCheaters.length;
+      const startIndex = (currentPage - 1) * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
       const pageCheaters = allCheaters.slice(startIndex, endIndex);
       
+      // Cache the result
+      const cacheData = {
+        data: pageCheaters,
+        totalPages: calculatedTotalPages,
+        totalCheaters: calculatedTotalCheaters
+      };
+      setPageCache(prev => ({ ...prev, [cacheKey]: cacheData }));
+      
       setAllCheaters(pageCheaters);
+      setTotalPages(calculatedTotalPages);
+      setTotalCheaters(Number(calculatedTotalCheaters));
     } catch (error) {
       showMessage('Error fetching cheaters: ' + error.message, 'error');
     } finally {
@@ -208,6 +319,8 @@ const AdminSearch = ({ user: initialUser }) => {
     setEvidenceModalOpen(true);
   };
 
+  console.log(isNavigating, tableLoading); // TODO: remove debug
+
   // Show loading while checking authentication
   if (!user) {
     return (
@@ -255,34 +368,38 @@ const AdminSearch = ({ user: initialUser }) => {
           </Text>
         ) : (
           <Box overflowX="auto">
-            <Table.Root variant="simple">
+            <Table.Root variant="simple" maxW="4xl" mx="auto">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeader width="25%">Username</Table.ColumnHeader>
-                  <Table.ColumnHeader width="20%">Date Reported</Table.ColumnHeader>
-                  <Table.ColumnHeader width="55%">Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader width="25%" textAlign="center">Username</Table.ColumnHeader>
+                  <Table.ColumnHeader width="20%" textAlign="center">Date Reported</Table.ColumnHeader>
+                  <Table.ColumnHeader width="55%" textAlign="center">Actions</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {(tableLoading ? Array.from({ length: pageSize }) : allCheaters).map((cheater, idx) => (
+                {(tableLoading ? Array.from({ length: PAGE_SIZE }) : allCheaters).map((cheater, idx) => (
                   <Table.Row key={cheater?.id || idx}>
-                    <Table.Cell fontWeight="medium" whiteSpace="nowrap">
-                      <Skeleton loading={tableLoading} height="24px">
-                        {cheater?.username}
+                    <Table.Cell fontWeight="medium" whiteSpace="nowrap" textAlign="center">
+                      <Skeleton loading={tableLoading || isNavigating} height="24px">
+                        {cheater?.username || ''}
                       </Skeleton>
                     </Table.Cell>
-                    <Table.Cell>
-                      <Skeleton loading={tableLoading} height="24px" width="100px">
-                        {cheater
-                          ? (cheater.reportedAt?.toDate
-                              ? cheater.reportedAt.toDate().toLocaleDateString()
-                              : new Date(cheater.reportedAt).toLocaleDateString())
-                          : ''}
-                      </Skeleton>
+                    <Table.Cell textAlign="center" width="120px">
+                      <Box display="flex" justifyContent="center" alignItems="center" height="24px">
+                        <Skeleton loading={tableLoading || isNavigating} height="24px" width="100px">
+                          <Text textAlign="center">
+                            {cheater
+                              ? (cheater.reportedAt?.toDate
+                                  ? cheater.reportedAt.toDate().toLocaleDateString()
+                                  : new Date(cheater.reportedAt).toLocaleDateString())
+                              : ''}
+                          </Text>
+                        </Skeleton>
+                      </Box>
                     </Table.Cell>
-                    <Table.Cell>
-                      <HStack spacing={4}>
-                        <Skeleton loading={tableLoading} height="32px" borderRadius="md">
+                    <Table.Cell textAlign="center">
+                      <HStack spacing={4} justify="center">
+                        <Skeleton loading={tableLoading || isNavigating} height="32px" borderRadius="md">
                           <Button
                             colorPalette="blue"
                             size="sm"
@@ -291,7 +408,7 @@ const AdminSearch = ({ user: initialUser }) => {
                             See evidence
                           </Button>
                         </Skeleton>
-                        <Skeleton loading={tableLoading} height="32px" borderRadius="md">
+                        <Skeleton loading={tableLoading || isNavigating} height="32px" borderRadius="md">
                           <Button
                             colorPalette="orange"
                             size="sm"
@@ -302,7 +419,7 @@ const AdminSearch = ({ user: initialUser }) => {
                             Move to pending
                           </Button>
                         </Skeleton>
-                        <Skeleton loading={tableLoading} height="32px" borderRadius="md">
+                        <Skeleton loading={tableLoading || isNavigating} height="32px" borderRadius="md">
                           <Button
                             colorPalette="red"
                             size="sm"
@@ -321,34 +438,33 @@ const AdminSearch = ({ user: initialUser }) => {
             </Table.Root>
             {/* Pagination controls */}
             <HStack justify="center" mt={4} spacing={4}>
-              <Skeleton loading={tableLoading} height="40px" borderRadius="md">
-                <Button
-                  onClick={() => {
-                    setCurrentPage(prev => Math.max(1, prev - 1));
-                    fetchCheaters(searchTerm);
-                  }}
-                  disabled={currentPage <= 1 || tableLoading}
-                  loading={tableLoading}
-                >
-                  Previous
-                </Button>
-              </Skeleton>
-              <Skeleton loading={tableLoading} height="40px" borderRadius="md">
-                <Button
-                  onClick={() => {
-                    setCurrentPage(prev => prev + 1);
-                    fetchCheaters(searchTerm);
-                  }}
-                  disabled={currentPage >= totalPages || tableLoading}
-                >
-                  Next
-                </Button>
-              </Skeleton>
+              <Button
+                onClick={() => {
+                  const newPage = Math.max(1, currentPage - 1);
+                  if (newPage !== currentPage) {
+                    setCurrentPage(newPage);
+                  }
+                }}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={() => {
+                  const newPage = currentPage + 1;
+                  if (newPage <= totalPages) {
+                    setCurrentPage(newPage);
+                  }
+                }}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </Button>
             </HStack>
           </Box>
         )}
         <Box mt={4} textAlign="center">
-          <Skeleton loading={tableLoading} mx="auto" display="inline-block">
+          <Skeleton loading={cheaterCountCache[searchTerm] === undefined} mx="auto" display="inline-block">
             <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }}>
               Page {currentPage} of {totalPages} • {allCheaters.length} of {totalCheaters} cheaters
             </Text>
