@@ -127,14 +127,9 @@ const AdminSearch = ({ user: initialUser }) => {
     if (user) {
       setCurrentPage(1); // Reset to first page when search changes
       setPageCache({}); // Clear cache when search changes
-      // Set count cache to undefined to trigger skeleton loading
-      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
+      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined })); // Always reset skeleton
       fetchCheaters(searchTerm);
-      if (cheaterCountCache[searchTerm] === undefined) {
-        fetchTotalCheaters(searchTerm);
-      } else {
-        setTotalCheaters(cheaterCountCache[searchTerm]);
-      }
+      fetchTotalCheaters(searchTerm); // Always fetch count
     }
     // eslint-disable-next-line
   }, [user, searchTerm]);
@@ -148,7 +143,7 @@ const AdminSearch = ({ user: initialUser }) => {
       const cacheKey = JSON.stringify([searchTerm, currentPage]);
       if (pageCache[cacheKey]) {
         setAllCheaters(pageCache[cacheKey].data);
-        setTotalPages(pageCache[cacheKey].totalPages);
+        setTotalPages(Math.max(1, pageCache[cacheKey].totalPages));
         setTotalCheaters(Number(pageCache[cacheKey].totalCheaters));
         setTableLoading(false);
         return;
@@ -195,7 +190,7 @@ const AdminSearch = ({ user: initialUser }) => {
     // Check cache first
     if (pageCache[cacheKey]) {
       setAllCheaters(pageCache[cacheKey].data);
-      setTotalPages(pageCache[cacheKey].totalPages);
+      setTotalPages(Math.max(1, pageCache[cacheKey].totalPages));
       setTotalCheaters(Number(pageCache[cacheKey].totalCheaters));
       setTableLoading(false);
       return;
@@ -229,7 +224,7 @@ const AdminSearch = ({ user: initialUser }) => {
       });
       
       // Calculate pagination
-      const calculatedTotalPages = Math.ceil(allCheaters.length / PAGE_SIZE);
+      const calculatedTotalPages = Math.max(1, Math.ceil(allCheaters.length / PAGE_SIZE));
       const calculatedTotalCheaters = allCheaters.length;
       const startIndex = (currentPage - 1) * PAGE_SIZE;
       const endIndex = startIndex + PAGE_SIZE;
@@ -282,7 +277,9 @@ const AdminSearch = ({ user: initialUser }) => {
       });
       await deleteDoc(doc(db, 'cheaters', moveTarget.id));
       showMessage(`User "${moveTarget.username}" has been moved back to pending review.`, 'success');
+      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined })); // Reset count cache to trigger skeleton
       fetchCheaters(searchTerm);
+      fetchTotalCheaters(searchTerm); // Refetch count
     } catch (error) {
       showMessage('Error moving user to pending: ' + error.message, 'error');
     } finally {
@@ -306,7 +303,9 @@ const AdminSearch = ({ user: initialUser }) => {
       await deleteAllReportsForUsername(deleteTarget.username);
       await deleteDoc(doc(db, 'cheaters', deleteTarget.id));
       showMessage(`User "${deleteTarget.username}" has been completely removed from the database.`, 'success');
+      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined })); // Reset count cache to trigger skeleton
       fetchCheaters(searchTerm);
+      fetchTotalCheaters(searchTerm); // Refetch count
     } catch (error) {
       showMessage('Error removing user: ' + error.message, 'error');
     } finally {
@@ -467,10 +466,13 @@ const AdminSearch = ({ user: initialUser }) => {
             </HStack>
           </Box>
         )}
+        {/* Pagination info */}
         <Box mt={4} textAlign="center">
           <Skeleton loading={cheaterCountCache[searchTerm] === undefined} mx="auto" display="inline-block">
             <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }}>
-              Page {currentPage} of {totalPages} • {allCheaters.length} of {totalCheaters} cheaters
+              {totalCheaters > 0 || tableLoading
+                ? `Page ${currentPage} of ${totalPages} • ${allCheaters.length} of ${totalCheaters} cheaters`
+                : '\u00A0'}
             </Text>
           </Skeleton>
         </Box>
