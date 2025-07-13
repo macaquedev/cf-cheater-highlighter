@@ -127,6 +127,8 @@ const AdminSearch = ({ user: initialUser }) => {
     if (user) {
       setCurrentPage(1); // Reset to first page when search changes
       setPageCache({}); // Clear cache when search changes
+      // Set count cache to undefined to trigger skeleton loading
+      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
       fetchCheaters(searchTerm);
       if (cheaterCountCache[searchTerm] === undefined) {
         fetchTotalCheaters(searchTerm);
