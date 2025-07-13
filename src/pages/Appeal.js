@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Input, Button } from '@chakra-ui/react';
+import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
