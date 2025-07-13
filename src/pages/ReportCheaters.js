@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Input, Button, VStack, Link, Spinner, ButtonPropsProvider } from '@chakra-ui/react';
+import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
@@ -220,6 +220,8 @@ const ReportCheaters = ({ user }) => {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 mt={1}
+                borderColor="gray.300"
+                _dark={{ borderColor: "gray.400" }}
               />
             </Box>
             

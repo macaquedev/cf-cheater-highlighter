@@ -161,6 +161,8 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows =
               onChange={(e) => setLinkUrl(e.target.value)}
               size="sm"
               onKeyPress={(e) => e.key === 'Enter' && addLink()}
+              borderColor="gray.300"
+              _dark={{ borderColor: "gray.400" }}
             />
             <Button size="sm" onClick={addLink} colorPalette="blue">
               Add

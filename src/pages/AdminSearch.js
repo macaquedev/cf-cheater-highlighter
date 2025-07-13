@@ -362,6 +362,8 @@ const AdminSearch = ({ user: initialUser }) => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             size="lg"
+            borderColor="gray.300"
+            _dark={{ borderColor: "gray.400" }}
           />
         </Box>
         {allCheaters.length === 0 && !tableLoading ? (

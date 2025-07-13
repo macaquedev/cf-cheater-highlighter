@@ -101,6 +101,8 @@ const AdminLogin = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   mt={1}
+                  borderColor="gray.300"
+                  _dark={{ borderColor: "gray.400" }}
                 />
               </Box>
               <Box>
@@ -112,6 +114,8 @@ const AdminLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   mt={1}
+                  borderColor="gray.300"
+                  _dark={{ borderColor: "gray.400" }}
                 />
               </Box>
               <Button colorPalette="blue" type="submit" loading={authLoading}>

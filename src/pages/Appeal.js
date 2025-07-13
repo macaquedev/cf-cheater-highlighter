@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Input, Button, Link, VStack } from '@chakra-ui/react';
+import { Box, Heading, Text, Input, Button } from '@chakra-ui/react';
 import { useState } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
@@ -211,6 +211,8 @@ const Appeal = () => {
                 onChange={(e) => setAppealUsername(e.target.value)}
                 required
                 mt={1}
+                borderColor="gray.300"
+                _dark={{ borderColor: "gray.400" }}
               />
             </Box>
             <Box>
