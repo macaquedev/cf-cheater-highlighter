@@ -4,13 +4,17 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Provider } from './components/ui/provider';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorFallback from './components/ErrorFallback';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <Provider>
-      <App />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <App />
+      </ErrorBoundary>
     </Provider>
   </React.StrictMode>
 );
