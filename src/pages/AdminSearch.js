@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, Button, Input, Heading, Text, HStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
+import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ const AdminSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState('');
+  const [selectedCheater, setSelectedCheater] = useState(null);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
@@ -308,8 +309,9 @@ const AdminSearch = () => {
     }
   };
 
-  const handleSeeEvidence = (evidence) => {
-    setSelectedEvidence(evidence);
+  const handleSeeEvidence = (cheater) => {
+    setSelectedEvidence(cheater.evidence);
+    setSelectedCheater(cheater);
     setEvidenceModalOpen(true);
   };
 
@@ -399,7 +401,7 @@ const AdminSearch = () => {
                           <Button
                             colorPalette="blue"
                             size="sm"
-                            onClick={() => handleSeeEvidence(cheater.evidence)}
+                            onClick={() => handleSeeEvidence(cheater)}
                           >
                             See evidence
                           </Button>
@@ -471,7 +473,13 @@ const AdminSearch = () => {
         </Box>
       </Box>
       {/* Evidence Modal */}
-      <Dialog.Root open={evidenceModalOpen} onOpenChange={(e) => setEvidenceModalOpen(e.open)}>
+      <Dialog.Root open={evidenceModalOpen} onOpenChange={(e) => {
+        setEvidenceModalOpen(e.open);
+        if (!e.open) {
+          setSelectedCheater(null);
+          setSelectedEvidence('');
+        }
+      }}>
         <Portal>
           <Dialog.Backdrop />
           <Dialog.Positioner>
@@ -480,61 +488,148 @@ const AdminSearch = () => {
                 <Dialog.Title>Evidence</Dialog.Title>
               </Dialog.Header>
               <Dialog.Body>
-                <Box
-                  bg="gray.50"
-                  p={4}
-                  rounded="md"
-                  border="1px"
-                  borderColor="gray.200"
-                  _dark={{ 
-                    bg: "gray.600",
-                    borderColor: "gray.500" 
-                  }}
-                  sx={{
-                    '& strong': { fontWeight: 'bold' },
-                    '& em': { fontStyle: 'italic' },
-                    '& code': { 
-                      bg: 'gray.100', 
-                      px: 1, 
-                      py: 0.5, 
-                      borderRadius: 'sm', 
-                      fontFamily: 'mono',
-                      fontSize: 'sm',
-                      _dark: { bg: 'gray.700' }
-                    },
-                    '& pre': {
-                      bg: 'gray.50',
-                      p: 3,
-                      borderRadius: 'md',
-                      border: '1px solid',
-                      borderColor: 'gray.200',
-                      overflowX: 'auto',
-                      my: 2,
-                      _dark: { 
-                        bg: 'gray.700', 
-                        borderColor: 'gray.600' 
-                      }
-                    },
-                    '& pre code': {
-                      bg: 'transparent',
-                      p: 0,
-                      borderRadius: 0,
-                      fontSize: 'sm',
-                      lineHeight: 1.5
-                    },
-                    '& a': { 
-                      color: 'blue.600', 
-                      textDecoration: 'underline',
-                      _dark: { color: 'blue.300' }
-                    },
-                    '& br': { display: 'block', content: '""', marginTop: 2 }
-                  }}
-                >
-                  <MarkdownRenderer>{selectedEvidence}</MarkdownRenderer>
-                </Box>
+                <VStack gap={4} align="stretch">
+                  <Box>
+                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                      Evidence:
+                    </Text>
+                    <Box
+                      bg="gray.50"
+                      p={4}
+                      rounded="md"
+                      border="1px"
+                      borderColor="gray.200"
+                      _dark={{ 
+                        bg: "gray.600",
+                        borderColor: "gray.500" 
+                      }}
+                      sx={{
+                        '& strong': { fontWeight: 'bold' },
+                        '& em': { fontStyle: 'italic' },
+                        '& code': { 
+                          bg: 'gray.100', 
+                          px: 1, 
+                          py: 0.5, 
+                          borderRadius: 'sm', 
+                          fontFamily: 'mono',
+                          fontSize: 'sm',
+                          _dark: { bg: 'gray.700' }
+                        },
+                        '& pre': {
+                          bg: 'gray.50',
+                          p: 3,
+                          borderRadius: 'md',
+                          border: '1px solid',
+                          borderColor: 'gray.200',
+                          overflowX: 'auto',
+                          my: 2,
+                          _dark: { 
+                            bg: 'gray.700', 
+                            borderColor: 'gray.600' 
+                          }
+                        },
+                        '& pre code': {
+                          bg: 'transparent',
+                          p: 0,
+                          borderRadius: 0,
+                          fontSize: 'sm',
+                          lineHeight: 1.5
+                        },
+                        '& a': { 
+                          color: 'blue.600', 
+                          textDecoration: 'underline',
+                          _dark: { color: 'blue.300' }
+                        },
+                        '& br': { display: 'block', content: '""', marginTop: 2 }
+                      }}
+                    >
+                      <MarkdownRenderer>{selectedEvidence}</MarkdownRenderer>
+                    </Box>
+                  </Box>
+                  
+                  <Box>
+                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                      Admin Note:
+                    </Text>
+                    {selectedCheater?.adminNote ? (
+                      <Box
+                        bg="blue.50"
+                        p={4}
+                        rounded="md"
+                        border="1px"
+                        borderColor="blue.200"
+                        _dark={{ 
+                          bg: "blue.900",
+                          borderColor: "blue.700" 
+                        }}
+                        sx={{
+                          '& strong': { fontWeight: 'bold' },
+                          '& em': { fontStyle: 'italic' },
+                          '& code': { 
+                            bg: 'blue.100', 
+                            px: 1, 
+                            py: 0.5, 
+                            borderRadius: 'sm', 
+                            fontFamily: 'mono',
+                            fontSize: 'sm',
+                            _dark: { bg: 'blue.800' }
+                          },
+                          '& pre': {
+                            bg: 'blue.50',
+                            p: 3,
+                            borderRadius: 'md',
+                            border: '1px solid',
+                            borderColor: 'blue.200',
+                            overflowX: 'auto',
+                            my: 2,
+                            _dark: { 
+                              bg: 'blue.800', 
+                              borderColor: 'blue.700' 
+                            }
+                          },
+                          '& pre code': {
+                            bg: 'transparent',
+                            p: 0,
+                            borderRadius: 0,
+                            fontSize: 'sm',
+                            lineHeight: 1.5
+                          },
+                          '& a': { 
+                            color: 'blue.600', 
+                            textDecoration: 'underline',
+                            _dark: { color: 'blue.300' }
+                          },
+                          '& br': { display: 'block', content: '""', marginTop: 2 }
+                        }}
+                      >
+                        <MarkdownRenderer>{selectedCheater.adminNote}</MarkdownRenderer>
+                      </Box>
+                    ) : (
+                      <Box
+                        bg="gray.50"
+                        p={4}
+                        rounded="md"
+                        border="1px"
+                        borderColor="gray.200"
+                        _dark={{ 
+                          bg: "gray.700",
+                          borderColor: "gray.600" 
+                        }}
+                      >
+                        <Text color="gray.500" _dark={{ color: "gray.400" }} fontStyle="italic">
+                          No admin note provided
+                        </Text>
+                      </Box>
+                    )}
+                  </Box>
+                </VStack>
               </Dialog.Body>
               <Dialog.Footer>
-                <Button onClick={() => setEvidenceModalOpen(false)}>
+                <Button onClick={() => {
+                  setEvidenceModalOpen(false);
+                  setSelectedCheater(null);
+                  setSelectedEvidence('');
+                }}>
                   Close
                 </Button>
               </Dialog.Footer>

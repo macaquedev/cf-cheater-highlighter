@@ -5,6 +5,7 @@ import {
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import RichTextEditor from '../components/RichTextEditor';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 
@@ -14,6 +15,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
   const [currentIndex, setCurrentIndex] = useState(0);
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [adminNote, setAdminNote] = useState('');
   const navigate = useNavigate();
 
   // Wrapper function to handle loading state
@@ -78,6 +80,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
     await addDoc(collection(db, 'cheaters'), {
       username: report.username.toLowerCase(), // Ensure lowercase storage
       evidence: report.evidence,
+      adminNote: adminNote.trim() || null, // Include admin note if provided
       reportedAt: report.reportedAt || new Date(),
     });
     
@@ -131,11 +134,13 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
   const handlePrev = () => {
     console.log('Previous clicked, current index:', currentIndex); // Debug log
     setCurrentIndex((i) => Math.max(i - 1, 0));
+    setAdminNote(''); // Reset admin note when navigating
   };
   
   const handleNext = () => {
     console.log('Next clicked, current index:', currentIndex, 'total reports:', pendingReports.length); // Debug log
     setCurrentIndex((i) => Math.min(i + 1, pendingReports.length - 1));
+    setAdminNote(''); // Reset admin note when navigating
   };
 
   // Add keyboard navigation
@@ -168,7 +173,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
   return (
     <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }} py={8} px={4}>
       <Flex align="center" justify="center" minH="70vh">
-        <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md" maxW="lg" w="100%">
+        <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md" maxW="2xl" w="100%">
           <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">
             Review Reports
           </Heading>
@@ -343,6 +348,20 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
                   }}
                 >
                   <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
+                </Box>
+                
+                <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                  Admin Note (Optional):
+                </Text>
+                <Box mb={4} p={4} bg="white" borderRadius="md" borderWidth={1} borderColor="gray.200" _dark={{ bg: "gray.700", borderColor: "gray.600" }}>
+                  <Box mt={-2}>
+                    <RichTextEditor
+                      value={adminNote}
+                      onChange={setAdminNote}
+                      placeholder="Add any additional notes or context for this report..."
+                      rows={3}
+                    />
+                  </Box>
                 </Box>
                 <Flex gap={4}>
                   <Button 
