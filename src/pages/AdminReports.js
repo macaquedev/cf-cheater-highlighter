@@ -111,6 +111,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
       : 'Report accepted and user added to cheaters.';
     
     setMessage({ type: 'success', text: messageText });
+    setAdminNote(''); // Clear admin note after accepting
     // No need to manually refresh - the Firebase hook will automatically update the data
   };
 
@@ -120,6 +121,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
     
     await deleteDoc(doc(db, 'reports', report.id));
     setMessage({ type: 'info', text: 'Report declined.' });
+    setAdminNote(''); // Clear admin note after declining
     // No need to manually refresh - the Firebase hook will automatically update the data
   };
 
