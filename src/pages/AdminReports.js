@@ -5,7 +5,7 @@ import {
 import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import RichTextEditor from '../components/RichTextEditor';
+import MarkdownEditor from '../components/MarkdownEditor';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 
@@ -357,7 +357,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
                 </Text>
                 <Box mb={4} p={4} bg="white" borderRadius="md" borderWidth={1} borderColor="gray.200" _dark={{ bg: "gray.700", borderColor: "gray.600" }}>
                   <Box mt={-2}>
-                    <RichTextEditor
+                    <MarkdownEditor
                       value={adminNote}
                       onChange={setAdminNote}
                       placeholder="Add any additional notes or context for this report..."

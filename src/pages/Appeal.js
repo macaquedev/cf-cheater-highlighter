@@ -2,7 +2,7 @@ import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import RichTextEditor from '../components/RichTextEditor';
+import MarkdownEditor from '../components/MarkdownEditor';
 import { Icon } from '@chakra-ui/react';
 import { FiRefreshCw } from 'react-icons/fi';
 
@@ -228,7 +228,7 @@ const Appeal = () => {
             </Box>
             <Box>
               <label htmlFor="appeal-message" style={{ color: 'inherit' }}>Appeal Message</label>
-              <RichTextEditor
+              <MarkdownEditor
                 value={appealMessage}
                 onChange={setAppealMessage}
                 placeholder="Enter appeal message with formatting options above"

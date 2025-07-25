@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, Textarea, HStack, IconButton, Input, Button, Text } from '@chakra-ui/react';
 import { LuBold, LuItalic, LuCode, LuLink, LuLink2, LuEye, LuPencil, LuFileCode } from 'react-icons/lu';
 import MarkdownRenderer from './MarkdownRenderer';
-import './RichTextEditor.css';
+import './MarkdownEditor.css';
 
 // Styled wrapper for ReactMarkdown
 const StyledMarkdown = ({ children }) => (
   <MarkdownRenderer>{children}</MarkdownRenderer>
 );
 
-const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows = 4 }) => {
+const MarkdownEditor = ({ value, onChange, placeholder = "Enter text...", rows = 4 }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -207,4 +207,4 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter text...", rows =
   );
 };
 
-export default RichTextEditor; 
+export default MarkdownEditor; 

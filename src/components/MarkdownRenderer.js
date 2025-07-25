@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useColorMode } from './ui/color-mode';
-import './RichTextEditor.css';
+import './MarkdownEditor.css';
 
 const MarkdownRenderer = ({ children, className = "" }) => {
   const { colorMode } = useColorMode();

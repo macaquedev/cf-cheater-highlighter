@@ -2,7 +2,7 @@ import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/reac
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import RichTextEditor from '../components/RichTextEditor';
+import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
 
 const ReportCheaters = () => {
@@ -229,7 +229,7 @@ const ReportCheaters = () => {
             
             <Box>
               <label htmlFor="evidence" style={{ color: 'inherit' }}>Evidence</label>
-              <RichTextEditor
+              <MarkdownEditor
                 value={evidence}
                 onChange={setEvidence}
                 placeholder="Enter evidence with formatting options above"
