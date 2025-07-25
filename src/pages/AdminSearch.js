@@ -272,6 +272,8 @@ const AdminSearch = () => {
         evidence: moveTarget.evidence,
         status: 'pending',
         reportedAt: new Date(),
+        movedToPendingBy: user.email, // Track which admin moved it back to pending
+        movedToPendingAt: new Date(), // Track when it was moved back
       });
       await deleteDoc(doc(db, 'cheaters', moveTarget.id));
       showMessage(`User "${moveTarget.username}" has been moved back to pending review.`, 'success');
@@ -389,12 +391,13 @@ const AdminSearch = () => {
           </Text>
         ) : (
           <Box overflowX="auto">
-            <Table.Root variant="simple" maxW="4xl" mx="auto">
+            <Table.Root variant="simple" maxW="5xl" mx="auto">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeader width="25%" textAlign="center">Username</Table.ColumnHeader>
-                  <Table.ColumnHeader width="20%" textAlign="center">Date Reported</Table.ColumnHeader>
-                  <Table.ColumnHeader width="55%" textAlign="center">Actions</Table.ColumnHeader>
+                  <Table.ColumnHeader width="20%" textAlign="center">Username</Table.ColumnHeader>
+                  <Table.ColumnHeader width="15%" textAlign="center">Date Reported</Table.ColumnHeader>
+                  <Table.ColumnHeader width="15%" textAlign="center">Accepted By</Table.ColumnHeader>
+                  <Table.ColumnHeader width="50%" textAlign="center">Actions</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -414,6 +417,15 @@ const AdminSearch = () => {
                                   ? cheater.reportedAt.toDate().toLocaleDateString()
                                   : new Date(cheater.reportedAt).toLocaleDateString())
                               : ''}
+                          </Text>
+                        </Skeleton>
+                      </Box>
+                    </Table.Cell>
+                    <Table.Cell textAlign="center" width="120px">
+                      <Box display="flex" justifyContent="center" alignItems="center" height="24px">
+                        <Skeleton loading={tableLoading || isNavigating} height="24px" width="100px">
+                          <Text textAlign="center" fontSize="sm">
+                            {cheater?.acceptedBy ? cheater.acceptedBy.split('@')[0] : 'Unknown'}
                           </Text>
                         </Skeleton>
                       </Box>
@@ -589,6 +601,47 @@ const AdminSearch = () => {
                       }}
                     >
                       <MarkdownRenderer>{selectedCheater?.evidence || ''}</MarkdownRenderer>
+                    </Box>
+                  </Box>
+                  
+                  {/* Admin Acceptance Information */}
+                  <Box>
+                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                      Report Details:
+                    </Text>
+                    <Box
+                      bg="blue.50"
+                      p={3}
+                      rounded="md"
+                      border="1px"
+                      borderColor="blue.200"
+                      _dark={{ 
+                        bg: "blue.900",
+                        borderColor: "blue.700" 
+                      }}
+                    >
+                      <VStack gap={2} align="stretch">
+                        <Text fontSize="sm">
+                          <Text as="span" fontWeight="bold">Reported:</Text>{' '}
+                          {selectedCheater?.reportedAt
+                            ? (selectedCheater.reportedAt?.toDate
+                                ? selectedCheater.reportedAt.toDate().toLocaleDateString()
+                                : new Date(selectedCheater.reportedAt).toLocaleDateString())
+                            : 'Unknown'}
+                        </Text>
+                        <Text fontSize="sm">
+                          <Text as="span" fontWeight="bold">Accepted by:</Text>{' '}
+                          {selectedCheater?.acceptedBy || 'Unknown'}
+                        </Text>
+                        {selectedCheater?.acceptedAt && (
+                          <Text fontSize="sm">
+                            <Text as="span" fontWeight="bold">Accepted on:</Text>{' '}
+                            {selectedCheater.acceptedAt?.toDate
+                              ? selectedCheater.acceptedAt.toDate().toLocaleDateString() + ' at ' + selectedCheater.acceptedAt.toDate().toLocaleTimeString()
+                              : new Date(selectedCheater.acceptedAt).toLocaleDateString() + ' at ' + new Date(selectedCheater.acceptedAt).toLocaleTimeString()}
+                          </Text>
+                        )}
+                      </VStack>
                     </Box>
                   </Box>
                   

@@ -82,6 +82,8 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
       evidence: report.evidence,
       adminNote: adminNote.trim() || null, // Include admin note if provided
       reportedAt: report.reportedAt || new Date(),
+      acceptedBy: user.email, // Track which admin accepted the report
+      acceptedAt: new Date(), // Track when the report was accepted
     });
     
     // Mark current report as accepted
