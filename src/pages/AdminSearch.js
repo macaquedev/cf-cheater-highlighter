@@ -4,6 +4,7 @@ import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import EditAdminNoteModal from '../components/EditAdminNoteModal';
 import { useAuth } from '../App';
 
 // Constants
@@ -17,6 +18,9 @@ const AdminSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedCheater, setSelectedCheater] = useState(null);
+  // Edit Admin Note Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingCheater, setEditingCheater] = useState(null);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
@@ -35,6 +39,7 @@ const AdminSearch = () => {
   const navigate = useNavigate();
   const lastKeyPressTime = useRef(0);
   const [cheaterCountCache, setCheaterCountCache] = useState({});
+
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -282,6 +287,25 @@ const AdminSearch = () => {
     }
   };
 
+  const handleEditAdminNote = (cheater) => {
+    setEditingCheater(cheater);
+    setEditModalOpen(true);
+  };
+
+  // Add handler for updating cheater data after edit
+  const handleCheaterUpdate = (updatedCheater) => {
+    // Update the selected cheater if it's the one being edited
+    if (selectedCheater && selectedCheater.id === updatedCheater.id) {
+      setSelectedCheater(updatedCheater);
+    }
+    
+    // Update the cheaters list
+    setAllCheaters(prev => prev.map(c => c.id === updatedCheater.id ? updatedCheater : c));
+    
+    // Clear the page cache to ensure fresh data on next load
+    setPageCache({});
+  };
+
   // Open confirmation dialog
   const handleRemoveFromDatabase = (cheaterId, cheaterUsername) => {
     setDeleteTarget({ id: cheaterId, username: cheaterUsername });
@@ -327,6 +351,7 @@ const AdminSearch = () => {
   return (
     <Box maxW="6xl" mx="auto" px={6}>
       <Box bg="gray.50" _dark={{ bg: "gray.900" }} p={8} rounded="md" shadow="md">
+        {/* ...existing message and header code... */}
         {message && (
           <Box 
             p={4} 
@@ -394,7 +419,7 @@ const AdminSearch = () => {
                       </Box>
                     </Table.Cell>
                     <Table.Cell textAlign="center">
-                      <HStack spacing={4} justify="center">
+                      <HStack spacing={2} justify="center" wrap="wrap">
                         <Skeleton loading={tableLoading || isNavigating} height="32px" borderRadius="md">
                           <Button
                             colorPalette="blue"
@@ -459,7 +484,7 @@ const AdminSearch = () => {
             </HStack>
           </Box>
         )}
-        {/* Pagination info */}
+        {/* Pagination info - keeping existing code */}
         <Box mt={4} textAlign="center">
           <Skeleton loading={cheaterCountCache[searchTerm] === undefined} mx="auto" display="inline-block">
             <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }}>
@@ -470,7 +495,30 @@ const AdminSearch = () => {
           </Skeleton>
         </Box>
       </Box>
-      {/* Evidence Dialog */}
+
+      {/* Edit Admin Note Modal */}
+      <EditAdminNoteModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingCheater(null);
+        }}
+        cheater={editingCheater}
+        onUpdate={handleCheaterUpdate}
+        onReturnToEvidence={(updatedCheater) => {
+          if (updatedCheater) {
+            setSelectedCheater(updatedCheater);
+            setEvidenceDialogOpen(true);
+          } else if (editingCheater) {
+            // Fallback if no updated cheater is passed
+            const updatedCheater = allCheaters.find(c => c.id === editingCheater.id) || editingCheater;
+            setSelectedCheater(updatedCheater);
+            setEvidenceDialogOpen(true);
+          }
+        }}
+      />
+
+      {/* Evidence Dialog - updated to include Edit Note button */}
       <Dialog.Root open={evidenceDialogOpen} onOpenChange={(e) => {
         setEvidenceDialogOpen(e.open);
         if (!e.open) {
@@ -480,9 +528,9 @@ const AdminSearch = () => {
         <Portal>
           <Dialog.Backdrop />
           <Dialog.Positioner>
-            <Dialog.Content>
+            <Dialog.Content maxW="2xl">
               <Dialog.Header>
-                <Dialog.Title>Evidence</Dialog.Title>
+                <Dialog.Title>Evidence for {selectedCheater?.username}</Dialog.Title>
               </Dialog.Header>
               <Dialog.Body>
                 <VStack gap={4} align="stretch">
@@ -545,9 +593,22 @@ const AdminSearch = () => {
                   </Box>
                   
                   <Box>
-                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
-                      Admin Note:
-                    </Text>
+                    <HStack justify="space-between" align="center" mb={2}>
+                      <Text fontWeight="bold" color="blue.700" _dark={{ color: "blue.300" }}>
+                        Admin Note:
+                      </Text>
+                      <Button
+                        size="sm"
+                        colorPalette="purple"
+                        variant="outline"
+                        onClick={() => {
+                          setEvidenceDialogOpen(false);
+                          handleEditAdminNote(selectedCheater);
+                        }}
+                      >
+                        Edit Note
+                      </Button>
+                    </HStack>
                     {selectedCheater?.adminNote ? (
                       <Box
                         bg="blue.50"
@@ -633,7 +694,8 @@ const AdminSearch = () => {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
-      {/* Delete Confirmation Dialog using Dialog */}
+
+      {/* Delete Confirmation Dialog - keeping existing code */}
       <Dialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} placement="center">
         <Portal>
           <Dialog.Backdrop />
@@ -655,7 +717,8 @@ const AdminSearch = () => {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
-      {/* Move to Pending Confirmation Dialog using Dialog */}
+
+      {/* Move to Pending Confirmation Dialog - keeping existing code */}
       <Dialog.Root open={moveDialogOpen} onOpenChange={setMoveDialogOpen} placement="center">
         <Portal>
           <Dialog.Backdrop />

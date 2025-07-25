@@ -1,0 +1,70 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
+import { db, auth } from '../firebase';
+import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import MarkdownRenderer from '../components/MarkdownRenderer';
+import EditAdminNoteModal from '../components/EditAdminNoteModal';
+import { useAuth } from '../App';
+
+// Constants
+const PAGE_SIZE = 20;
+const THROTTLE_DELAY = 100; // Consistent delay between key presses
+
+const AdminSearch = () => {
+  const { user } = useAuth();
+  const [allCheaters, setAllCheaters] = useState([]);
+  const [tableLoading, setTableLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [selectedCheater, setSelectedCheater] = useState(null);
+  // Edit Admin Note Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingCheater, setEditingCheater] = useState(null);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
+  const [totalPages, setTotalPages] = useState(1); // Total number of pages
+
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, username }
+  // State for move to pending confirmation dialog
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTarget, setMoveTarget] = useState(null); // { id, username, evidence }
+  const [actionLoading, setActionLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [pageCache, setPageCache] = useState({});
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigate = useNavigate();
+  const lastKeyPressTime = useRef(0);
+  const [cheaterCountCache, setCheaterCountCache] = useState({});
+
+  // ...existing code...
+
+  // Add handler for opening edit modal
+  const handleEditAdminNote = (cheater) => {
+    setEditingCheater(cheater);
+    setEditModalOpen(true);
+  };
+
+  // Add handler for updating cheater data after edit
+  const handleCheaterUpdate = (updatedCheater) => {
+    // Update the selected cheater if it's the one being edited
+    if (selectedCheater && selectedCheater.id === updatedCheater.id) {
+      setSelectedCheater(updatedCheater);
+    }
+    
+    // Update the cheaters list
+    setAllCheaters(prev => prev.map(c => c.id === updatedCheater.id ? updatedCheater : c));
+    
+    // Clear the page cache to ensure fresh data on next load
+    setPageCache({});
+  };
+
+  // ...existing code continues unchanged until the Evidence Dialog section...
+
+  
+};
+
+export default AdminSearch;
