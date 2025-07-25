@@ -15,7 +15,7 @@ const AdminSearch = () => {
   const [allCheaters, setAllCheaters] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState('');
   const [selectedCheater, setSelectedCheater] = useState(null);
   // Pagination states
@@ -23,10 +23,10 @@ const AdminSearch = () => {
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
   const [totalPages, setTotalPages] = useState(1); // Total number of pages
 
-  // State for delete confirmation modal
+  // State for delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, username }
-  // State for move to pending confirmation modal
+  // State for move to pending confirmation dialog
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState(null); // { id, username, evidence }
   const [actionLoading, setActionLoading] = useState(false);
@@ -312,7 +312,7 @@ const AdminSearch = () => {
   const handleSeeEvidence = (cheater) => {
     setSelectedEvidence(cheater.evidence);
     setSelectedCheater(cheater);
-    setEvidenceModalOpen(true);
+    setEvidenceDialogOpen(true);
   };
 
   console.log(isNavigating, tableLoading); // TODO: remove debug
@@ -472,9 +472,9 @@ const AdminSearch = () => {
           </Skeleton>
         </Box>
       </Box>
-      {/* Evidence Modal */}
-      <Dialog.Root open={evidenceModalOpen} onOpenChange={(e) => {
-        setEvidenceModalOpen(e.open);
+      {/* Evidence Dialog */}
+      <Dialog.Root open={evidenceDialogOpen} onOpenChange={(e) => {
+        setEvidenceDialogOpen(e.open);
         if (!e.open) {
           setSelectedCheater(null);
           setSelectedEvidence('');
@@ -626,7 +626,7 @@ const AdminSearch = () => {
               </Dialog.Body>
               <Dialog.Footer>
                 <Button onClick={() => {
-                  setEvidenceModalOpen(false);
+                  setEvidenceDialogOpen(false);
                   setSelectedCheater(null);
                   setSelectedEvidence('');
                 }}>
@@ -637,7 +637,7 @@ const AdminSearch = () => {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
-      {/* Delete Confirmation Modal using Dialog */}
+      {/* Delete Confirmation Dialog using Dialog */}
       <Dialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} placement="center">
         <Portal>
           <Dialog.Backdrop />
@@ -659,7 +659,7 @@ const AdminSearch = () => {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
-      {/* Move to Pending Confirmation Modal using Dialog */}
+      {/* Move to Pending Confirmation Dialog using Dialog */}
       <Dialog.Root open={moveDialogOpen} onOpenChange={setMoveDialogOpen} placement="center">
         <Portal>
           <Dialog.Backdrop />
