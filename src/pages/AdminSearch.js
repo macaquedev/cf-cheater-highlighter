@@ -16,7 +16,6 @@ const AdminSearch = () => {
   const [tableLoading, setTableLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
-  const [selectedEvidence, setSelectedEvidence] = useState('');
   const [selectedCheater, setSelectedCheater] = useState(null);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -310,7 +309,6 @@ const AdminSearch = () => {
   };
 
   const handleSeeEvidence = (cheater) => {
-    setSelectedEvidence(cheater.evidence);
     setSelectedCheater(cheater);
     setEvidenceDialogOpen(true);
   };
@@ -477,7 +475,6 @@ const AdminSearch = () => {
         setEvidenceDialogOpen(e.open);
         if (!e.open) {
           setSelectedCheater(null);
-          setSelectedEvidence('');
         }
       }}>
         <Portal>
@@ -543,7 +540,7 @@ const AdminSearch = () => {
                         '& br': { display: 'block', content: '""', marginTop: 2 }
                       }}
                     >
-                      <MarkdownRenderer>{selectedEvidence}</MarkdownRenderer>
+                      <MarkdownRenderer>{selectedCheater?.evidence || ''}</MarkdownRenderer>
                     </Box>
                   </Box>
                   
@@ -628,7 +625,6 @@ const AdminSearch = () => {
                 <Button onClick={() => {
                   setEvidenceDialogOpen(false);
                   setSelectedCheater(null);
-                  setSelectedEvidence('');
                 }}>
                   Close
                 </Button>
