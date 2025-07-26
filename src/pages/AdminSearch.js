@@ -1,11 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
-import { db, auth } from '../firebase';
-import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import EditAdminNoteModal from '../components/EditAdminNoteModal';
+import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
+import {
+  fetchTotalCheaters as fetchTotalCheatersUtil,
+  fetchCheaters as fetchCheatersUtil,
+  deleteAllReportsForUsername,
+  moveToPending,
+  deleteCheater,
+  setAdminNote
+} from '../utils/cheaterUtils';
 
 // Constants
 const PAGE_SIZE = 20;
@@ -18,9 +24,12 @@ const AdminSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedCheater, setSelectedCheater] = useState(null);
-  // Edit Admin Note Modal states
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingCheater, setEditingCheater] = useState(null);
+
+  // Inline admin note editing states
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editingNoteValue, setEditingNoteValue] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
@@ -39,7 +48,6 @@ const AdminSearch = () => {
   const navigate = useNavigate();
   const lastKeyPressTime = useRef(0);
   const [cheaterCountCache, setCheaterCountCache] = useState({});
-
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -62,9 +70,7 @@ const AdminSearch = () => {
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
         return; // Don't trigger shortcuts when typing in input fields
       }
-      
       const now = Date.now();
-      
       switch (event.key) {
         case 'ArrowLeft': {
           event.preventDefault();
@@ -73,7 +79,6 @@ const AdminSearch = () => {
           if (prevPage !== currentPage && now - lastKeyPressTime.current >= THROTTLE_DELAY) {
             lastKeyPressTime.current = now;
             setCurrentPage(prevPage);
-            // Set navigating state on repeated events (not first press) and only if page changes
             if (event.repeat) {
               setIsNavigating(true);
             }
@@ -87,7 +92,6 @@ const AdminSearch = () => {
           if (nextPage <= totalPages && now - lastKeyPressTime.current >= THROTTLE_DELAY) {
             lastKeyPressTime.current = now;
             setCurrentPage(nextPage);
-            // Set navigating state on repeated events (not first press) and only if page changes
             if (event.repeat) {
               setIsNavigating(true);
             }
@@ -132,8 +136,6 @@ const AdminSearch = () => {
     // eslint-disable-next-line
   }, [user, searchTerm]);
 
-
-
   // Refetch data when currentPage changes
   useEffect(() => {
     if (user) {
@@ -151,8 +153,6 @@ const AdminSearch = () => {
     // eslint-disable-next-line
   }, [currentPage]);
 
-
-
   const showMessage = (text, type = 'info') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
@@ -161,20 +161,9 @@ const AdminSearch = () => {
   // Fetch total count of cheaters for display
   const fetchTotalCheaters = async (search = '') => {
     try {
-      let cheatersRef = collection(db, 'cheaters');
-      let q;
-      if (search) {
-        q = query(
-          cheatersRef,
-          where('username', '>=', search.toLowerCase()),
-          where('username', '<=', search.toLowerCase() + '\uf8ff')
-        );
-      } else {
-        q = query(cheatersRef);
-      }
-      const querySnapshot = await getDocs(q);
-      setTotalCheaters(Number(querySnapshot.size));
-      setCheaterCountCache(prev => ({ ...prev, [search]: Number(querySnapshot.size) }));
+      const total = await fetchTotalCheatersUtil(search);
+      setTotalCheaters(Number(total));
+      setCheaterCountCache(prev => ({ ...prev, [search]: Number(total) }));
     } catch (error) {
       console.error('Error fetching total cheaters:', error);
       setTotalCheaters(0);
@@ -184,8 +173,6 @@ const AdminSearch = () => {
   // Fetch cheaters with page-based pagination and caching
   const fetchCheaters = async (search = '') => {
     const cacheKey = JSON.stringify([search, currentPage]);
-    
-    // Check cache first
     if (pageCache[cacheKey]) {
       setAllCheaters(pageCache[cacheKey].data);
       setTotalPages(Math.max(1, pageCache[cacheKey].totalPages));
@@ -193,66 +180,17 @@ const AdminSearch = () => {
       setTableLoading(false);
       return;
     }
-    
     setTableLoading(true);
-    
     try {
-      let cheatersRef = collection(db, 'cheaters');
-      let q;
-      if (search) {
-        q = query(
-          cheatersRef,
-          where('username', '>=', search.toLowerCase()),
-          where('username', '<=', search.toLowerCase() + '\uf8ff'),
-          orderBy('username'),
-          orderBy('reportedAt', 'desc')
-        );
-      } else {
-        q = query(
-          cheatersRef,
-          orderBy('reportedAt', 'desc')
-        );
-      }
-      
-      // Get all documents for the current search
-      const querySnapshot = await getDocs(q);
-      const allCheaters = [];
-      querySnapshot.forEach((doc) => {
-        allCheaters.push({ id: doc.id, ...doc.data() });
-      });
-      
-      // Calculate pagination
-      const calculatedTotalPages = Math.max(1, Math.ceil(allCheaters.length / PAGE_SIZE));
-      const calculatedTotalCheaters = allCheaters.length;
-      const startIndex = (currentPage - 1) * PAGE_SIZE;
-      const endIndex = startIndex + PAGE_SIZE;
-      const pageCheaters = allCheaters.slice(startIndex, endIndex);
-      
-      // Cache the result
-      const cacheData = {
-        data: pageCheaters,
-        totalPages: calculatedTotalPages,
-        totalCheaters: calculatedTotalCheaters
-      };
-      setPageCache(prev => ({ ...prev, [cacheKey]: cacheData }));
-      
-      setAllCheaters(pageCheaters);
-      setTotalPages(calculatedTotalPages);
-      setTotalCheaters(Number(calculatedTotalCheaters));
+      const cheaters = await fetchCheatersUtil(currentPage, search, PAGE_SIZE);
+      setAllCheaters(cheaters);
+      setTotalPages(cheaters.length < PAGE_SIZE && currentPage === 1 ? 1 : Math.ceil((totalCheaters || cheaters.length) / PAGE_SIZE));
+      setTotalCheaters(totalCheaters || cheaters.length);
     } catch (error) {
       showMessage('Error fetching cheaters: ' + error.message, 'error');
     } finally {
       setTableLoading(false);
     }
-  };
-
-  // Helper to delete all reports for a username
-  const deleteAllReportsForUsername = async (username) => {
-    const reportsRef = collection(db, 'reports');
-    const q = query(reportsRef, where('username', '==', username.toLowerCase()));
-    const snapshot = await getDocs(q);
-    const deletePromises = snapshot.docs.map((docu) => deleteDoc(docu.ref));
-    await Promise.all(deletePromises);
   };
 
   // Open confirmation dialog for move to pending
@@ -266,20 +204,14 @@ const AdminSearch = () => {
     if (!moveTarget) return;
     setActionLoading(true);
     try {
-      await deleteAllReportsForUsername(moveTarget.username);
-      await addDoc(collection(db, 'reports'), {
-        username: moveTarget.username.toLowerCase(),
-        evidence: moveTarget.evidence,
-        status: 'pending',
-        reportedAt: new Date(),
-        movedToPendingBy: user.email, // Track which admin moved it back to pending
-        movedToPendingAt: new Date(), // Track when it was moved back
+      await moveToPending({
+        ...moveTarget,
+        acceptedBy: user.email // ensure movedToPendingBy is set
       });
-      await deleteDoc(doc(db, 'cheaters', moveTarget.id));
       showMessage(`User "${moveTarget.username}" has been moved back to pending review.`, 'success');
-      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined })); // Reset count cache to trigger skeleton
+      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
       fetchCheaters(searchTerm);
-      fetchTotalCheaters(searchTerm); // Refetch count
+      fetchTotalCheaters(searchTerm);
     } catch (error) {
       showMessage('Error moving user to pending: ' + error.message, 'error');
     } finally {
@@ -287,25 +219,6 @@ const AdminSearch = () => {
       setMoveDialogOpen(false);
       setMoveTarget(null);
     }
-  };
-
-  const handleEditAdminNote = (cheater) => {
-    setEditingCheater(cheater);
-    setEditModalOpen(true);
-  };
-
-  // Add handler for updating cheater data after edit
-  const handleCheaterUpdate = (updatedCheater) => {
-    // Update the selected cheater if it's the one being edited
-    if (selectedCheater && selectedCheater.id === updatedCheater.id) {
-      setSelectedCheater(updatedCheater);
-    }
-    
-    // Update the cheaters list
-    setAllCheaters(prev => prev.map(c => c.id === updatedCheater.id ? updatedCheater : c));
-    
-    // Clear the page cache to ensure fresh data on next load
-    setPageCache({});
   };
 
   // Open confirmation dialog
@@ -319,12 +232,11 @@ const AdminSearch = () => {
     if (!deleteTarget) return;
     setActionLoading(true);
     try {
-      await deleteAllReportsForUsername(deleteTarget.username);
-      await deleteDoc(doc(db, 'cheaters', deleteTarget.id));
+      await deleteCheater(deleteTarget);
       showMessage(`User "${deleteTarget.username}" has been completely removed from the database.`, 'success');
-      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined })); // Reset count cache to trigger skeleton
+      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
       fetchCheaters(searchTerm);
-      fetchTotalCheaters(searchTerm); // Refetch count
+      fetchTotalCheaters(searchTerm);
     } catch (error) {
       showMessage('Error removing user: ' + error.message, 'error');
     } finally {
@@ -339,7 +251,26 @@ const AdminSearch = () => {
     setEvidenceDialogOpen(true);
   };
 
-  console.log(isNavigating, tableLoading); // TODO: remove debug
+  // Inline save handler for admin note
+  const handleSaveAdminNote = async (cheater) => {
+    setSavingNote(true);
+    try {
+      await setAdminNote(cheater, editingNoteValue);
+      const updatedCheater = { ...cheater, adminNote: editingNoteValue };
+      if (selectedCheater && selectedCheater.id === cheater.id) {
+        setSelectedCheater(updatedCheater);
+      }
+      setAllCheaters(prev => prev.map(c => c.id === cheater.id ? updatedCheater : c));
+      setPageCache({});
+      setEditingNoteId(null);
+      setEditingNoteValue('');
+      showMessage('Admin note updated.', 'success');
+    } catch (error) {
+      showMessage('Error updating admin note: ' + error.message, 'error');
+    } finally {
+      setSavingNote(false);
+    }
+  };
 
   // Show loading while checking authentication
   if (!user) {
@@ -353,7 +284,6 @@ const AdminSearch = () => {
   return (
     <Box maxW="6xl" mx="auto" px={6}>
       <Box bg="gray.50" _dark={{ bg: "gray.900" }} p={8} rounded="md" shadow="md">
-        {/* ...existing message and header code... */}
         {message && (
           <Box 
             p={4} 
@@ -374,7 +304,6 @@ const AdminSearch = () => {
           </Box>
         )}
         <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">Admin Search</Heading>
-        {/* Search input for filtering */}
         <Box mb={6}>
           <Input
             placeholder="Search by username..."
@@ -469,7 +398,6 @@ const AdminSearch = () => {
                 ))}
               </Table.Body>
             </Table.Root>
-            {/* Pagination controls */}
             <HStack justify="center" mt={4} spacing={4}>
               <Button
                 onClick={() => {
@@ -496,7 +424,6 @@ const AdminSearch = () => {
             </HStack>
           </Box>
         )}
-        {/* Pagination info - keeping existing code */}
         <Box mt={4} textAlign="center">
           <Skeleton loading={cheaterCountCache[searchTerm] === undefined} mx="auto" display="inline-block">
             <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }}>
@@ -508,33 +435,13 @@ const AdminSearch = () => {
         </Box>
       </Box>
 
-      {/* Edit Admin Note Modal */}
-      <EditAdminNoteModal
-        isOpen={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setEditingCheater(null);
-        }}
-        cheater={editingCheater}
-        onUpdate={handleCheaterUpdate}
-        onReturnToEvidence={(updatedCheater) => {
-          if (updatedCheater) {
-            setSelectedCheater(updatedCheater);
-            setEvidenceDialogOpen(true);
-          } else if (editingCheater) {
-            // Fallback if no updated cheater is passed
-            const updatedCheater = allCheaters.find(c => c.id === editingCheater.id) || editingCheater;
-            setSelectedCheater(updatedCheater);
-            setEvidenceDialogOpen(true);
-          }
-        }}
-      />
-
-      {/* Evidence Dialog - updated to include Edit Note button */}
+      {/* Evidence Dialog - inline admin note editing */}
       <Dialog.Root open={evidenceDialogOpen} onOpenChange={(e) => {
         setEvidenceDialogOpen(e.open);
         if (!e.open) {
           setSelectedCheater(null);
+          setEditingNoteId(null);
+          setEditingNoteValue('');
         }
       }}>
         <Portal>
@@ -650,19 +557,52 @@ const AdminSearch = () => {
                       <Text fontWeight="bold" color="blue.700" _dark={{ color: "blue.300" }}>
                         Admin Note:
                       </Text>
-                      <Button
-                        size="sm"
-                        colorPalette="purple"
-                        variant="outline"
-                        onClick={() => {
-                          setEvidenceDialogOpen(false);
-                          handleEditAdminNote(selectedCheater);
-                        }}
-                      >
-                        Edit Note
-                      </Button>
+                      {editingNoteId === selectedCheater?.id ? null : (
+                        <Button
+                          size="sm"
+                          colorPalette="purple"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingNoteId(selectedCheater.id);
+                            setEditingNoteValue(selectedCheater.adminNote || '');
+                          }}
+                        >
+                          Edit Note
+                        </Button>
+                      )}
                     </HStack>
-                    {selectedCheater?.adminNote ? (
+                    {editingNoteId === selectedCheater?.id ? (
+                      <Box>
+                        <MarkdownEditor
+                          value={editingNoteValue}
+                          onChange={setEditingNoteValue}
+                          minRows={4}
+                          maxRows={12}
+                          isDisabled={savingNote}
+                        />
+                        <HStack mt={2} spacing={2}>
+                          <Button
+                            size="sm"
+                            colorPalette="green"
+                            onClick={() => handleSaveAdminNote(selectedCheater)}
+                            loading={savingNote}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingNoteId(null);
+                              setEditingNoteValue('');
+                            }}
+                            isDisabled={savingNote}
+                          >
+                            Cancel
+                          </Button>
+                        </HStack>
+                      </Box>
+                    ) : selectedCheater?.adminNote ? (
                       <Box
                         bg="blue.50"
                         p={4}
@@ -739,6 +679,8 @@ const AdminSearch = () => {
                 <Button onClick={() => {
                   setEvidenceDialogOpen(false);
                   setSelectedCheater(null);
+                  setEditingNoteId(null);
+                  setEditingNoteValue('');
                 }}>
                   Close
                 </Button>
@@ -748,7 +690,7 @@ const AdminSearch = () => {
         </Portal>
       </Dialog.Root>
 
-      {/* Delete Confirmation Dialog - keeping existing code */}
+      {/* Delete Confirmation Dialog */}
       <Dialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} placement="center">
         <Portal>
           <Dialog.Backdrop />
@@ -771,7 +713,7 @@ const AdminSearch = () => {
         </Portal>
       </Dialog.Root>
 
-      {/* Move to Pending Confirmation Dialog - keeping existing code */}
+      {/* Move to Pending Confirmation Dialog */}
       <Dialog.Root open={moveDialogOpen} onOpenChange={setMoveDialogOpen} placement="center">
         <Portal>
           <Dialog.Backdrop />
@@ -797,4 +739,4 @@ const AdminSearch = () => {
   );
 };
 
-export default AdminSearch; 
+export default AdminSearch;
