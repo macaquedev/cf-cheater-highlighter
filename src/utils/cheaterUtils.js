@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, getDocs, query, where, doc, deleteDoc, addDoc, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, getCountFromServer, doc, deleteDoc, addDoc, orderBy, updateDoc } from 'firebase/firestore';
 
 /**
  * Fetch the total number of cheaters matching a search term.
@@ -16,10 +16,12 @@ export async function fetchTotalCheaters(searchTerm = '') {
       where('username', '<=', searchTerm.toLowerCase() + '\uf8ff')
     );
   } else {
-    q = query(cheatersRef);
+    q = query(
+      cheatersRef
+    );
   }
-  const querySnapshot = await getDocs(q);
-  return Number(querySnapshot.size);
+  const querySnapshot = await getCountFromServer(q);
+  return querySnapshot.data().count;
 }
 
 /**
@@ -72,16 +74,17 @@ export async function deleteAllReportsForUsername(username) {
 /**
  * Move a cheater to pending
  * @param {Object} cheater document data of the cheater
+ * @param {Object} user data for current user
  * @returns {Promise<void>}
  */
-export async function moveToPending(cheater) {
+export async function moveToPending(cheater, user) {
   await deleteAllReportsForUsername(cheater.username);
   await addDoc(collection(db, 'reports'), {
     username: cheater.username.toLowerCase(),
     evidence: cheater.evidence,
     status: 'pending',
     reportedAt: new Date(),
-    movedToPendingBy: cheater.acceptedBy,
+    movedToPendingBy: user.email,
     movedToPendingAt: new Date(),
   });
   await deleteDoc(doc(db, 'cheaters', cheater.id));

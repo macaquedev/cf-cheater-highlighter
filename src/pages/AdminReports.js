@@ -311,45 +311,6 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
                   minH="100px"
                   maxH="300px"
                   overflowY="auto"
-                  sx={{
-                    '& strong': { fontWeight: 'bold' },
-                    '& em': { fontStyle: 'italic' },
-                    '& code': { 
-                      bg: 'gray.100', 
-                      px: 1, 
-                      py: 0.5, 
-                      borderRadius: 'sm', 
-                      fontFamily: 'mono',
-                      fontSize: 'sm',
-                      _dark: { bg: 'gray.700' }
-                    },
-                    '& pre': {
-                      bg: 'gray.50',
-                      p: 3,
-                      borderRadius: 'md',
-                      border: '1px solid',
-                      borderColor: 'gray.200',
-                      overflowX: 'auto',
-                      my: 2,
-                      _dark: { 
-                        bg: 'gray.700', 
-                        borderColor: 'gray.600' 
-                      }
-                    },
-                    '& pre code': {
-                      bg: 'transparent',
-                      p: 0,
-                      borderRadius: 0,
-                      fontSize: 'sm',
-                      lineHeight: 1.5
-                    },
-                    '& a': { 
-                      color: 'blue.600', 
-                      textDecoration: 'underline',
-                      _dark: { color: 'blue.300' }
-                    },
-                    '& br': { display: 'block', content: '""', marginTop: 2 }
-                  }}
                 >
                   <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
                 </Box>

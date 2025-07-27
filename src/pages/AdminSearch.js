@@ -26,8 +26,9 @@ const AdminSearch = () => {
   const [selectedCheater, setSelectedCheater] = useState(null);
 
   // Inline admin note editing states
-  const [editingNoteId, setEditingNoteId] = useState(null);
+  // const [editingNoteId, setEditingNoteId] = useState(null); // Removed
   const [editingNoteValue, setEditingNoteValue] = useState('');
+  const [editingNote, setEditingNote] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
 
   // Pagination states
@@ -35,19 +36,21 @@ const AdminSearch = () => {
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
   const [totalPages, setTotalPages] = useState(1); // Total number of pages
 
-  // State for delete confirmation dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null); // { id, username }
-  // State for move to pending confirmation dialog
-  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [moveTarget, setMoveTarget] = useState(null); // { id, username, evidence }
-  const [actionLoading, setActionLoading] = useState(false);
-  const [message, setMessage] = useState(null);
   const [pageCache, setPageCache] = useState({});
   const [isNavigating, setIsNavigating] = useState(false);
-  const navigate = useNavigate();
   const lastKeyPressTime = useRef(0);
   const [cheaterCountCache, setCheaterCountCache] = useState({});
+
+  // Dialog states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+
+  // Misc
+  const [currentAction, setCurrentAction] = useState('');
+  // const [actionId, setActionId] = useState(null);
+  const [message, setMessage] = useState(null);
+
+  const navigate = useNavigate();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -136,18 +139,22 @@ const AdminSearch = () => {
     // eslint-disable-next-line
   }, [user, searchTerm]);
 
+  function loadFromCache(cacheKey) {
+    const cache = pageCache[cacheKey];
+    if (!cache) return false;
+    setAllCheaters(cache.data);
+    setTotalPages(Math.max(1, cache.totalPages));
+    setTotalCheaters(Number(cache.totalCheaters));
+    setTableLoading(false);
+    return true;
+  }
+
   // Refetch data when currentPage changes
   useEffect(() => {
     if (user) {
       // Check cache before fetching
       const cacheKey = JSON.stringify([searchTerm, currentPage]);
-      if (pageCache[cacheKey]) {
-        setAllCheaters(pageCache[cacheKey].data);
-        setTotalPages(Math.max(1, pageCache[cacheKey].totalPages));
-        setTotalCheaters(Number(pageCache[cacheKey].totalCheaters));
-        setTableLoading(false);
-        return;
-      }
+      if (loadFromCache(cacheKey)) return;
       fetchCheaters(searchTerm);
     }
     // eslint-disable-next-line
@@ -162,7 +169,8 @@ const AdminSearch = () => {
   const fetchTotalCheaters = async (search = '') => {
     try {
       const total = await fetchTotalCheatersUtil(search);
-      setTotalCheaters(Number(total));
+      setTotalCheaters(total);
+      setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)));
       setCheaterCountCache(prev => ({ ...prev, [search]: Number(total) }));
     } catch (error) {
       console.error('Error fetching total cheaters:', error);
@@ -173,19 +181,11 @@ const AdminSearch = () => {
   // Fetch cheaters with page-based pagination and caching
   const fetchCheaters = async (search = '') => {
     const cacheKey = JSON.stringify([search, currentPage]);
-    if (pageCache[cacheKey]) {
-      setAllCheaters(pageCache[cacheKey].data);
-      setTotalPages(Math.max(1, pageCache[cacheKey].totalPages));
-      setTotalCheaters(Number(pageCache[cacheKey].totalCheaters));
-      setTableLoading(false);
-      return;
-    }
+    if (loadFromCache(cacheKey)) return;
     setTableLoading(true);
     try {
       const cheaters = await fetchCheatersUtil(currentPage, search, PAGE_SIZE);
       setAllCheaters(cheaters);
-      setTotalPages(cheaters.length < PAGE_SIZE && currentPage === 1 ? 1 : Math.ceil((totalCheaters || cheaters.length) / PAGE_SIZE));
-      setTotalCheaters(totalCheaters || cheaters.length);
     } catch (error) {
       showMessage('Error fetching cheaters: ' + error.message, 'error');
     } finally {
@@ -194,61 +194,60 @@ const AdminSearch = () => {
   };
 
   // Open confirmation dialog for move to pending
-  const handleMoveToPending = (cheaterId, cheaterUsername, cheaterEvidence) => {
-    setMoveTarget({ id: cheaterId, username: cheaterUsername, evidence: cheaterEvidence });
+  const handleMoveToPending = (cheater) => {
+    setSelectedCheater(cheater);
     setMoveDialogOpen(true);
   };
 
   // Actually move after confirmation
   const confirmMoveToPending = async () => {
-    if (!moveTarget) return;
-    setActionLoading(true);
+    if (!selectedCheater) return;
+    setCurrentAction('moveToPending');
     try {
-      await moveToPending({
-        ...moveTarget,
-        acceptedBy: user.email // ensure movedToPendingBy is set
-      });
-      showMessage(`User "${moveTarget.username}" has been moved back to pending review.`, 'success');
+      await moveToPending(selectedCheater, user);
+      showMessage(`User "${selectedCheater.username}" has been moved back to pending review.`, 'success');
       setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
       fetchCheaters(searchTerm);
       fetchTotalCheaters(searchTerm);
     } catch (error) {
       showMessage('Error moving user to pending: ' + error.message, 'error');
     } finally {
-      setActionLoading(false);
+      setCurrentAction('');
       setMoveDialogOpen(false);
-      setMoveTarget(null);
+      setSelectedCheater(null);
     }
   };
 
   // Open confirmation dialog
-  const handleRemoveFromDatabase = (cheaterId, cheaterUsername) => {
-    setDeleteTarget({ id: cheaterId, username: cheaterUsername });
+  const handleRemoveFromDatabase = (cheater) => {
+    setSelectedCheater(cheater);
     setDeleteDialogOpen(true);
   };
 
   // Actually delete after confirmation
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    setActionLoading(true);
+    if (!selectedCheater) return;
+    setCurrentAction('delete');
     try {
-      await deleteCheater(deleteTarget);
-      showMessage(`User "${deleteTarget.username}" has been completely removed from the database.`, 'success');
+      await deleteCheater(selectedCheater);
+      showMessage(`User "${selectedCheater.username}" has been completely removed from the database.`, 'success');
       setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
       fetchCheaters(searchTerm);
       fetchTotalCheaters(searchTerm);
     } catch (error) {
       showMessage('Error removing user: ' + error.message, 'error');
     } finally {
-      setActionLoading(false);
+      setCurrentAction('');
       setDeleteDialogOpen(false);
-      setDeleteTarget(null);
+      setSelectedCheater(null);
     }
   };
 
   const handleSeeEvidence = (cheater) => {
     setSelectedCheater(cheater);
     setEvidenceDialogOpen(true);
+    setEditingNote(false);
+    setEditingNoteValue('');
   };
 
   // Inline save handler for admin note
@@ -262,7 +261,7 @@ const AdminSearch = () => {
       }
       setAllCheaters(prev => prev.map(c => c.id === cheater.id ? updatedCheater : c));
       setPageCache({});
-      setEditingNoteId(null);
+      setEditingNote(false);
       setEditingNoteValue('');
       showMessage('Admin note updated.', 'success');
     } catch (error) {
@@ -374,9 +373,7 @@ const AdminSearch = () => {
                           <Button
                             colorPalette="orange"
                             size="sm"
-                            onClick={() => handleMoveToPending(cheater.id, cheater.username, cheater.evidence)}
-                            loading={actionLoading}
-                            loadingText="Moving..."
+                            onClick={() => handleMoveToPending(cheater)}
                           >
                             Move to pending
                           </Button>
@@ -385,9 +382,7 @@ const AdminSearch = () => {
                           <Button
                             colorPalette="red"
                             size="sm"
-                            onClick={() => handleRemoveFromDatabase(cheater.id, cheater.username)}
-                            loading={actionLoading}
-                            loadingText="Removing..."
+                            onClick={() => handleRemoveFromDatabase(cheater)}
                           >
                             Remove
                           </Button>
@@ -440,7 +435,7 @@ const AdminSearch = () => {
         setEvidenceDialogOpen(e.open);
         if (!e.open) {
           setSelectedCheater(null);
-          setEditingNoteId(null);
+          setEditingNote(false);
           setEditingNoteValue('');
         }
       }}>
@@ -466,45 +461,6 @@ const AdminSearch = () => {
                       _dark={{ 
                         bg: "gray.600",
                         borderColor: "gray.500" 
-                      }}
-                      sx={{
-                        '& strong': { fontWeight: 'bold' },
-                        '& em': { fontStyle: 'italic' },
-                        '& code': { 
-                          bg: 'gray.100', 
-                          px: 1, 
-                          py: 0.5, 
-                          borderRadius: 'sm', 
-                          fontFamily: 'mono',
-                          fontSize: 'sm',
-                          _dark: { bg: 'gray.700' }
-                        },
-                        '& pre': {
-                          bg: 'gray.50',
-                          p: 3,
-                          borderRadius: 'md',
-                          border: '1px solid',
-                          borderColor: 'gray.200',
-                          overflowX: 'auto',
-                          my: 2,
-                          _dark: { 
-                            bg: 'gray.700', 
-                            borderColor: 'gray.600' 
-                          }
-                        },
-                        '& pre code': {
-                          bg: 'transparent',
-                          p: 0,
-                          borderRadius: 0,
-                          fontSize: 'sm',
-                          lineHeight: 1.5
-                        },
-                        '& a': { 
-                          color: 'blue.600', 
-                          textDecoration: 'underline',
-                          _dark: { color: 'blue.300' }
-                        },
-                        '& br': { display: 'block', content: '""', marginTop: 2 }
                       }}
                     >
                       <MarkdownRenderer>{selectedCheater?.evidence || ''}</MarkdownRenderer>
@@ -557,21 +513,8 @@ const AdminSearch = () => {
                       <Text fontWeight="bold" color="blue.700" _dark={{ color: "blue.300" }}>
                         Admin Note:
                       </Text>
-                      {editingNoteId === selectedCheater?.id ? null : (
-                        <Button
-                          size="sm"
-                          colorPalette="purple"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingNoteId(selectedCheater.id);
-                            setEditingNoteValue(selectedCheater.adminNote || '');
-                          }}
-                        >
-                          Edit Note
-                        </Button>
-                      )}
                     </HStack>
-                    {editingNoteId === selectedCheater?.id ? (
+                    {editingNote ? (
                       <Box>
                         <MarkdownEditor
                           value={editingNoteValue}
@@ -593,7 +536,7 @@ const AdminSearch = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              setEditingNoteId(null);
+                              setEditingNote(false);
                               setEditingNoteValue('');
                             }}
                             isDisabled={savingNote}
@@ -603,57 +546,31 @@ const AdminSearch = () => {
                         </HStack>
                       </Box>
                     ) : selectedCheater?.adminNote ? (
-                      <Box
-                        bg="blue.50"
-                        p={4}
-                        rounded="md"
-                        border="1px"
-                        borderColor="blue.200"
-                        _dark={{ 
-                          bg: "blue.900",
-                          borderColor: "blue.700" 
-                        }}
-                        sx={{
-                          '& strong': { fontWeight: 'bold' },
-                          '& em': { fontStyle: 'italic' },
-                          '& code': { 
-                            bg: 'blue.100', 
-                            px: 1, 
-                            py: 0.5, 
-                            borderRadius: 'sm', 
-                            fontFamily: 'mono',
-                            fontSize: 'sm',
-                            _dark: { bg: 'blue.800' }
-                          },
-                          '& pre': {
-                            bg: 'blue.50',
-                            p: 3,
-                            borderRadius: 'md',
-                            border: '1px solid',
-                            borderColor: 'blue.200',
-                            overflowX: 'auto',
-                            my: 2,
-                            _dark: { 
-                              bg: 'blue.800', 
-                              borderColor: 'blue.700' 
-                            }
-                          },
-                          '& pre code': {
-                            bg: 'transparent',
-                            p: 0,
-                            borderRadius: 0,
-                            fontSize: 'sm',
-                            lineHeight: 1.5
-                          },
-                          '& a': { 
-                            color: 'blue.600', 
-                            textDecoration: 'underline',
-                            _dark: { color: 'blue.300' }
-                          },
-                          '& br': { display: 'block', content: '""', marginTop: 2 }
-                        }}
-                      >
-                        <MarkdownRenderer>{selectedCheater.adminNote}</MarkdownRenderer>
+                      <Box>
+                        <Box
+                          bg="blue.50"
+                          p={4}
+                          rounded="md"
+                          border="1px"
+                          borderColor="gray.200"
+                          _dark={{ 
+                            bg: "gray.600",
+                            borderColor: "gray.500" 
+                          }}
+                        >
+                          <MarkdownRenderer>{selectedCheater.adminNote}</MarkdownRenderer>
+                        </Box>
+                        <Button
+                          mt={2}
+                          size="sm"
+                          colorPalette="green"
+                          onClick={() => {
+                            setEditingNote(true);
+                            setEditingNoteValue(selectedCheater.adminNote || '');
+                          }}
+                        >
+                          Edit Note
+                        </Button>
                       </Box>
                     ) : (
                       <Box
@@ -679,7 +596,7 @@ const AdminSearch = () => {
                 <Button onClick={() => {
                   setEvidenceDialogOpen(false);
                   setSelectedCheater(null);
-                  setEditingNoteId(null);
+                  setEditingNote(false);
                   setEditingNoteValue('');
                 }}>
                   Close
@@ -706,7 +623,7 @@ const AdminSearch = () => {
               </Dialog.Body>
               <Dialog.Footer>
                 <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-                <Button colorPalette="red" onClick={confirmDelete} ml={3} loading={actionLoading}>Delete</Button>
+                <Button colorPalette="red" onClick={confirmDelete} ml={3} loading={currentAction === 'delete'}>Delete</Button>
               </Dialog.Footer>
             </Dialog.Content>
           </Dialog.Positioner>
@@ -729,7 +646,7 @@ const AdminSearch = () => {
               </Dialog.Body>
               <Dialog.Footer>
                 <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>Cancel</Button>
-                <Button colorPalette="orange" onClick={confirmMoveToPending} ml={3} loading={actionLoading}>Move to Pending</Button>
+                <Button colorPalette="orange" onClick={confirmMoveToPending} ml={3} loading={currentAction === 'moveToPending'}>Move to Pending</Button>
               </Dialog.Footer>
             </Dialog.Content>
           </Dialog.Positioner>
