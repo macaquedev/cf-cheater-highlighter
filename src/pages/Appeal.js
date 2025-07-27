@@ -1,20 +1,18 @@
 import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
-import { Icon } from '@chakra-ui/react';
-import { FiRefreshCw } from 'react-icons/fi';
+import CFVerifier from '../components/CFVerifier';
+import { submitAppeal } from '../utils/cheaterUtils';
 
 const Appeal = () => {
   const [appealUsername, setAppealUsername] = useState('');
   const [appealMessage, setAppealMessage] = useState('');
   const [appealStatus, setAppealStatus] = useState(null);
   const [appealDisabled, setAppealDisabled] = useState(false);
-  const [verifyContest, setVerifyContest] = useState(null);
-  const [verifyProblem, setVerifyProblem] = useState(null);
-  const [rerollLoading, setRerollLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
+  const verificationRef = useRef();
 
   // Wrapper function to handle loading state
   const withLoading = async (loadingSetter, asyncFunction) => {
@@ -24,51 +22,6 @@ const Appeal = () => {
     } finally {
       loadingSetter(false);
     }
-  };
-
-  const generateRandomProblem = async () => {
-    const contest = Math.floor(Math.random() * 900) + 100;
-    const problem = 'A';
-
-    if (verifyContest && verifyContest === contest) {
-      await generateRandomProblem();
-      return;
-    }
-    
-    setVerifyContest(contest);
-    setVerifyProblem(problem);
-  };
-
-  const handleRerollProblem = () => {
-    withLoading(setRerollLoading, generateRandomProblem);
-  };
-
-  if (verifyContest === null || verifyProblem === null) {
-    generateRandomProblem();
-  }
-
-  const verifyUser = async (normalizedUsername) => {
-    // Get user's recent submissions
-    const submissionsResponse = await fetch(`https://codeforces.com/api/user.status?handle=${normalizedUsername}&count=10`);
-    const submissionsData = await submissionsResponse.json();
-    
-    if (submissionsData.status !== 'OK') {
-      setAppealStatus({ type: 'error', text: 'Could not fetch user submissions. Please try again.' });
-      return false;
-    }
-
-    // Check if any recent submission is a compilation error to the verify contest/problem
-    const hasCompilationError = submissionsData.result.some(submission => 
-      submission.problem.contestId === verifyContest &&
-      submission.problem.index === verifyProblem &&
-      submission.verdict === 'COMPILATION_ERROR'
-    );
-
-    if (!hasCompilationError) {
-      setAppealStatus({ type: 'error', text: `We cannot verify your Codeforces account. Please submit a compilation error to the link above.` });
-      return false;
-    }
-    return true;
   };
 
   const validateFormFields = () => {
@@ -108,15 +61,8 @@ const Appeal = () => {
     return true;
   };
 
-  const submitAppeal = async (normalizedUsername) => {
-    const appealsRef = collection(db, 'appeals');
-    await addDoc(appealsRef, {
-      username: normalizedUsername,
-      message: appealMessage.trim(),
-      status: 'pending',
-      submittedAt: new Date(),
-    });
-    
+  const handleSubmitAppeal = async (normalizedUsername) => {
+    await submitAppeal({ username: normalizedUsername, message: appealMessage });
     setAppealStatus({ type: 'success', text: `Appeal for "${appealUsername}" submitted successfully!` });
     setAppealUsername('');
     setAppealMessage('');
@@ -145,13 +91,15 @@ const Appeal = () => {
     
     // Step 4: Verify user identity
     setCurrentStep('Verifying account...');
-    if (!(await verifyUser(normalizedUsername))) {
+    const isValid = await verificationRef.current.verifyUser(normalizedUsername);
+    if (!isValid) {
+      setAppealStatus({ type: 'error', text: `We cannot verify your Codeforces account. Please submit a compilation error to the link above.` });
       return;
     }
     
     // Step 5: Submit the appeal
     setCurrentStep('Submitting...');
-    await submitAppeal(normalizedUsername);
+    await handleSubmitAppeal(normalizedUsername);
     setCurrentStep('');
   };
 
@@ -174,25 +122,7 @@ const Appeal = () => {
           <br/>
           <b>Before you appeal, you must verify your identity by submitting a <u>compilation error</u> to the problem below.</b>
         </Text>
-        <Box mb={4}>
-          <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.200' }} mb={2}>
-            Current verification problem: <a href={`https://codeforces.com/contest/${verifyContest}/problem/${verifyProblem}`} style={{color: "#3182ce", textDecoration: "underline", fontWeight: "500"}} target="_blank" rel="noopener noreferrer">{verifyContest}{verifyProblem}</a>
-          </Text>
-          <Button 
-            size="sm" 
-            colorPalette="gray" 
-            variant="outline"
-            onClick={handleRerollProblem}
-            loading={rerollLoading}
-            loadingText="Rerolling..."
-            borderWidth={2}
-            borderColor="gray.400"
-            _dark={{ borderColor: "gray.500" }}
-          >
-            <Icon as={FiRefreshCw} />
-            Reroll Problem
-          </Button>
-        </Box>
+        <CFVerifier range={[100, 1000]} ref={verificationRef} />
         {appealStatus && (
           <Box p={3} mb={4} rounded="md" bg={
             appealStatus.type === 'success' ? 'green.100' :

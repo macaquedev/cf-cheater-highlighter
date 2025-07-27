@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, Input, Heading, VStack, Text, Skeleton } from '@chakra-ui/react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { findCheaterByUsername } from '../utils/cheaterUtils';
 
 const Search = () => {
   const [username, setUsername] = useState('');
@@ -34,11 +35,8 @@ const Search = () => {
       }
       // Convert username to lowercase for case-insensitive search
       const searchUsername = username.trim().toLowerCase();
-      const cheatersRef = collection(db, 'cheaters');
-      const q = query(cheatersRef, where('username', '==', searchUsername));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const cheater = querySnapshot.docs[0].data();
+      const cheater = await findCheaterByUsername({ username: searchUsername });
+      if (cheater) {
         setResult({ 
           status: 'cheater', 
           reportedAt: cheater.reportedAt,

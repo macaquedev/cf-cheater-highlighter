@@ -8,6 +8,7 @@ import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { addCheaterToDatabase } from '../utils/cheaterUtils';
 
 const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingReportsError }) => {
   const { user } = useAuth();
@@ -27,8 +28,6 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
       setActionLoading(null);
     }
   };
-
-
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -70,57 +69,25 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
     const cheatersRef = collection(db, 'cheaters');
     const existingCheaterQuery = query(cheatersRef, where('username', '==', report.username.toLowerCase()));
     const existingCheaterSnapshot = await getDocs(existingCheaterQuery);
-    
+
     if (!existingCheaterSnapshot.empty) {
       setMessage({ type: 'error', text: 'User is already marked as a cheater in the database.' });
       return;
     }
     
-    // Add to cheaters collection with lowercase username
-    await addDoc(collection(db, 'cheaters'), {
-      username: report.username.toLowerCase(), // Ensure lowercase storage
-      evidence: report.evidence,
-      adminNote: adminNote.trim() || null, // Include admin note if provided
-      reportedAt: report.reportedAt || new Date(),
-      acceptedBy: user.email, // Track which admin accepted the report
-      acceptedAt: new Date(), // Track when the report was accepted
-    });
-    
-    // Mark current report as accepted
-    await updateDoc(doc(db, 'reports', report.id), { status: 'accepted' });
-    
-    // Find and actually delete all other pending reports for the same username
-    const reportsRef = collection(db, 'reports');
-    const duplicateQuery = query(
-      reportsRef, 
-      where('username', '==', report.username.toLowerCase()),
-      where('status', '==', 'pending')
-    );
-    const duplicateSnapshot = await getDocs(duplicateQuery);
-    
-    const deletePromises = duplicateSnapshot.docs.map(doc => {
-      if (doc.id !== report.id) { // Don't delete the one we just accepted
-        return deleteDoc(doc.ref); // Actually delete instead of marking as deleted
-      }
-      return Promise.resolve();
-    });
-    
-    await Promise.all(deletePromises);
-    
-    const deletedCount = duplicateSnapshot.docs.length - 1; // Subtract 1 for the accepted report
+    const deletedCount = await addCheaterToDatabase({ report, adminNote, user });
     const messageText = deletedCount > 0 
       ? `Report accepted and user added to cheaters. ${deletedCount} duplicate pending report(s) were automatically cleaned up.`
       : 'Report accepted and user added to cheaters.';
-    
     setMessage({ type: 'success', text: messageText });
-    setAdminNote(''); // Clear admin note after accepting
+    setAdminNote('');
     // No need to manually refresh - the Firebase hook will automatically update the data
   };
 
   const handleDecline = async () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
-    
+
     await deleteDoc(doc(db, 'reports', report.id));
     setMessage({ type: 'info', text: 'Report declined.' });
     setAdminNote(''); // Clear admin note after declining

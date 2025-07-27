@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
+import { submitReport } from '../utils/cheaterUtils';
 
 const ReportCheaters = () => {
   const { user } = useAuth();
@@ -90,12 +91,7 @@ const ReportCheaters = () => {
       setIsSubmitting(true);
       
       // Submit the new report
-      await addDoc(collection(db, 'reports'), {
-        username: normalizedUsername,
-        evidence: evidence.trim(),
-        status: 'pending',
-        reportedAt: new Date(),
-      });
+      await submitReport({ username: normalizedUsername, evidence });
       setMessage({ type: 'success', text: `User "${username}" has been reported successfully!` });
       setUsername('');
       setEvidence('');

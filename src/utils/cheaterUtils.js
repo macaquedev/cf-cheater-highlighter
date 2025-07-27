@@ -110,3 +110,58 @@ export async function setAdminNote(cheater, note) {
   const cheaterRef = doc(db, 'cheaters', cheater.id);
   await updateDoc(cheaterRef, { adminNote: note });
 }
+
+export async function addCheaterToDatabase({ report, adminNote, user }) {
+  await addDoc(collection(db, 'cheaters'), {
+    username: report.username.toLowerCase(),
+    evidence: report.evidence,
+    adminNote: adminNote.trim() || null,
+    reportedAt: report.reportedAt || new Date(),
+    acceptedBy: user.email,
+    acceptedAt: new Date(),
+  });
+  await updateDoc(doc(db, 'reports', report.id), { status: 'accepted' });
+  const reportsRef = collection(db, 'reports');
+  const duplicateQuery = query(
+    reportsRef,
+    where('username', '==', report.username.toLowerCase()),
+    where('status', '==', 'pending')
+  );
+  const duplicateSnapshot = await getDocs(duplicateQuery);
+  const deletePromises = duplicateSnapshot.docs.map(docu => {
+    if (docu.id !== report.id) {
+      return deleteDoc(docu.ref);
+    }
+    return Promise.resolve();
+  });
+  await Promise.all(deletePromises);
+  return duplicateSnapshot.docs.length - 1;
+}
+
+export async function submitAppeal({ username, message }) {
+  return addDoc(collection(db, 'appeals'), {
+    username,
+    message: message.trim(),
+    status: 'pending',
+    submittedAt: new Date(),
+  });
+}
+
+export async function submitReport({ username, evidence }) {
+  return addDoc(collection(db, 'reports'), {
+    username,
+    evidence: evidence.trim(),
+    status: 'pending',
+    reportedAt: new Date(),
+  });
+}
+
+export async function findCheaterByUsername({ username }) {
+  const cheatersRef = collection(db, 'cheaters');
+  const q = query(cheatersRef, where('username', '==', username));
+  const querySnapshot = await getDocs(q);
+  if (!querySnapshot.empty) {
+    return querySnapshot.docs[0].data();
+  }
+  return null;
+}
