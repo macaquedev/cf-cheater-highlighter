@@ -165,3 +165,25 @@ export async function findCheaterByUsername({ username }) {
   }
   return null;
 }
+
+/**
+ * Fetch the total number of pending reports.
+ * @returns {Promise<number>} Total number of pending reports
+ */
+export async function fetchPendingReportsCount() {
+  const reportsRef = collection(db, 'reports');
+  const q = query(reportsRef, where('status', '==', 'pending'));
+  const querySnapshot = await getCountFromServer(q);
+  return querySnapshot.data().count;
+}
+
+/**
+ * Fetch the total number of pending appeals.
+ * @returns {Promise<number>} Total number of pending appeals
+ */
+export async function fetchPendingAppealsCount() {
+  const appealsRef = collection(db, 'appeals');
+  const q = query(appealsRef, where('status', '!=', 'declined'));
+  const querySnapshot = await getCountFromServer(q);
+  return querySnapshot.data().count;
+}

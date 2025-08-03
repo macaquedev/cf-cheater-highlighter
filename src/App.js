@@ -8,12 +8,11 @@ import Search from './pages/Search';
 import AdminReports from './pages/AdminReports';
 import AdminLogin from './pages/AdminLogin';
 import Home from './pages/Home';
-import { collection, query, where } from 'firebase/firestore';
-import { useCollection } from 'react-firebase-hooks/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import Appeal from './pages/Appeal';
 import AdminAppeals from './pages/AdminAppeals';
 import AdminSearch from './pages/AdminSearch';
+import { fetchPendingReportsCount, fetchPendingAppealsCount } from './utils/cheaterUtils';
 
 // Create Auth Context
 const AuthContext = createContext();
@@ -62,15 +61,8 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
-
-  // Real-time queries for pending reports and appeals
-  const pendingReportsQuery = user ? query(collection(db, 'reports'), where('status', '==', 'pending')) : null;
-  const pendingAppealsQuery = user ? query(collection(db, 'appeals'), where('status', '!=', 'declined')) : null;
-
-  // Use react-firebase-hooks for real-time updates - useCollection is more efficient for counts
-  const [pendingReportsSnapshot, pendingReportsLoading, pendingReportsError] = useCollection(pendingReportsQuery);
-
-  const [pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError] = useCollection(pendingAppealsQuery);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingAppealsCount, setPendingAppealsCount] = useState(0);
 
   const handleLogout = async () => {
     try {
@@ -80,13 +72,27 @@ function App() {
     }
   };
 
-  // Handle any errors from the hooks
-  if (pendingReportsError) {
-    console.error('Error fetching pending reports:', pendingReportsError);
-  }
-  if (pendingAppealsError) {
-    console.error('Error fetching pending appeals:', pendingAppealsError);
-  }
+  // Fetch counts when user changes
+  useEffect(() => {
+    if (user) {
+      const fetchCounts = async () => {
+        try {
+          const [reportsCount, appealsCount] = await Promise.all([
+            fetchPendingReportsCount(),
+            fetchPendingAppealsCount()
+          ]);
+          setPendingCount(reportsCount);
+          setPendingAppealsCount(appealsCount);
+        } catch (error) {
+          console.error('Error fetching counts:', error);
+        }
+      };
+      fetchCounts();
+    } else {
+      setPendingCount(0);
+      setPendingAppealsCount(0);
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -103,8 +109,8 @@ function App() {
           <Navbar 
             user={user} 
             onLogout={handleLogout} 
-            pendingCount={pendingReportsSnapshot?.size || 0} 
-            pendingAppealsCount={pendingAppealsSnapshot?.size || 0} 
+            pendingCount={pendingCount} 
+            pendingAppealsCount={pendingAppealsCount} 
           />
           <Box as="main" py={8}>
             <Routes>
@@ -115,20 +121,8 @@ function App() {
               {/* Admin login page */}
               <Route path="/admin" element={<AdminLogin />} />
               {/* Review reports page (protected) */}
-              <Route path="/admin/reports" element={
-                <AdminReports 
-                  pendingReportsSnapshot={pendingReportsSnapshot}
-                  pendingReportsLoading={pendingReportsLoading}
-                  pendingReportsError={pendingReportsError}
-                />
-              } />
-              <Route path="/admin/appeals" element={
-                <AdminAppeals 
-                  pendingAppealsSnapshot={pendingAppealsSnapshot}
-                  pendingAppealsLoading={pendingAppealsLoading}
-                  pendingAppealsError={pendingAppealsError}
-                />
-              } />
+              <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/appeals" element={<AdminAppeals />} />
               <Route path="/appeal" element={<Appeal />} />
             </Routes>
           </Box>

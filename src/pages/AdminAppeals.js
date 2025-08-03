@@ -4,8 +4,9 @@ import { db, auth } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { useCollection } from 'react-firebase-hooks/firestore';
 
-const AdminAppeals = ({ pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError }) => {
+const AdminAppeals = () => {
   const { user } = useAuth();
   const [appeals, setAppeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +14,10 @@ const AdminAppeals = ({ pendingAppealsSnapshot, pendingAppealsLoading, pendingAp
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const navigate = useNavigate();
+
+  // Firebase hooks for real-time updates
+  const pendingAppealsQuery = user ? query(collection(db, 'appeals'), where('status', '!=', 'declined')) : null;
+  const [pendingAppealsSnapshot, pendingAppealsLoading, pendingAppealsError] = useCollection(pendingAppealsQuery);
 
   // Wrapper function to handle loading state
   const withLoading = async (loadingType, asyncFunction) => {
@@ -31,7 +36,7 @@ const AdminAppeals = ({ pendingAppealsSnapshot, pendingAppealsLoading, pendingAp
     }
   }, [user, navigate]);
 
-  // Use the Firebase hook data passed from App.js
+  // Use the Firebase hook data
   useEffect(() => {
     if (pendingAppealsSnapshot && !pendingAppealsLoading) {
       const fetchAppealsWithEvidence = async () => {

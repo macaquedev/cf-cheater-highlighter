@@ -9,8 +9,9 @@ import MarkdownEditor from '../components/MarkdownEditor';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { addCheaterToDatabase } from '../utils/cheaterUtils';
+import { useCollection } from 'react-firebase-hooks/firestore';
 
-const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingReportsError }) => {
+const AdminReports = () => {
   const { user } = useAuth();
   const [pendingReports, setPendingReports] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -18,6 +19,10 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
   const [actionLoading, setActionLoading] = useState(null);
   const [adminNote, setAdminNote] = useState('');
   const navigate = useNavigate();
+
+  // Firebase hooks for real-time updates
+  const pendingReportsQuery = user ? query(collection(db, 'reports'), where('status', '==', 'pending')) : null;
+  const [pendingReportsSnapshot, pendingReportsLoading, pendingReportsError] = useCollection(pendingReportsQuery);
 
   // Wrapper function to handle loading state
   const withLoading = async (loadingType, asyncFunction) => {
@@ -36,7 +41,7 @@ const AdminReports = ({ pendingReportsSnapshot, pendingReportsLoading, pendingRe
     }
   }, [user, navigate]);
 
-  // Use the Firebase hook data passed from App.js
+  // Use the Firebase hook data
   useEffect(() => {
     if (pendingReportsSnapshot && !pendingReportsLoading) {
       const reports = [];
