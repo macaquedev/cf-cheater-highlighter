@@ -545,21 +545,39 @@ const AdminSearch = () => {
                           </Button>
                         </HStack>
                       </Box>
-                    ) : selectedCheater?.adminNote ? (
+                    ) : (
                       <Box>
-                        <Box
-                          bg="blue.50"
-                          p={4}
-                          rounded="md"
-                          border="1px"
-                          borderColor="gray.200"
-                          _dark={{ 
-                            bg: "gray.600",
-                            borderColor: "gray.500" 
-                          }}
-                        >
-                          <MarkdownRenderer>{selectedCheater.adminNote}</MarkdownRenderer>
-                        </Box>
+                        {selectedCheater?.adminNote ? (
+                          <Box
+                            bg="blue.50"
+                            p={4}
+                            rounded="md"
+                            border="1px"
+                            borderColor="gray.200"
+                            _dark={{ 
+                              bg: "gray.600",
+                              borderColor: "gray.500" 
+                            }}
+                          >
+                            <MarkdownRenderer>{selectedCheater.adminNote}</MarkdownRenderer>
+                          </Box>
+                        ) : (
+                          <Box
+                            bg="gray.50"
+                            p={4}
+                            rounded="md"
+                            border="1px"
+                            borderColor="gray.200"
+                            _dark={{ 
+                              bg: "gray.700",
+                              borderColor: "gray.600" 
+                            }}
+                          >
+                            <Text color="gray.500" _dark={{ color: "gray.400" }} fontStyle="italic">
+                              No admin note provided
+                            </Text>
+                          </Box>
+                        )}
                         <Button
                           mt={2}
                           size="sm"
@@ -571,22 +589,6 @@ const AdminSearch = () => {
                         >
                           Edit Note
                         </Button>
-                      </Box>
-                    ) : (
-                      <Box
-                        bg="gray.50"
-                        p={4}
-                        rounded="md"
-                        border="1px"
-                        borderColor="gray.200"
-                        _dark={{ 
-                          bg: "gray.700",
-                          borderColor: "gray.600" 
-                        }}
-                      >
-                        <Text color="gray.500" _dark={{ color: "gray.400" }} fontStyle="italic">
-                          No admin note provided
-                        </Text>
                       </Box>
                     )}
                   </Box>
