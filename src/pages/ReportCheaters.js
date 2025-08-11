@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
-import { submitReport } from '../utils/cheaterUtils';
+import { submitReport, validateCodeforcesUsername } from '../utils/cheaterUtils';
 
 const ReportCheaters = () => {
   const { user } = useAuth();
@@ -41,21 +41,17 @@ const ReportCheaters = () => {
 
     setIsChecking(true);
     try {
-      // Convert username to lowercase and remove all whitespace for case-insensitive, space-insensitive storage
-      const normalizedUsername = username.trim().replace(/\s+/g, '').toLowerCase();
-
-      // Check if the user exists on Codeforces
-      const cfResponse = await fetch(`https://codeforces.com/api/user.info?handles=${normalizedUsername}&checkHistoricHandles=false`);
-      const cfData = await cfResponse.json();
-      if (cfData.status !== 'OK' || !cfData.result || cfData.result.length === 0) {
-        setMessage({ type: 'error', text: `User "${normalizedUsername}" does not exist on Codeforces. Please check the username and try again.` });
+      // Validate if the username exists on Codeforces
+      const validation = await validateCodeforcesUsername(username);
+      if (!validation.exists) {
+        setMessage({ type: 'error', text: validation.error });
         setIsChecking(false);
         return;
       }
 
       // Check if user is already marked as a cheater
       const cheatersRef = collection(db, 'cheaters');
-      const cheaterQuery = query(cheatersRef, where('username', '==', normalizedUsername));
+      const cheaterQuery = query(cheatersRef, where('username', '==', validation.normalizedUsername));
       const cheaterSnapshot = await getDocs(cheaterQuery);
       
       if (!cheaterSnapshot.empty) {
@@ -91,7 +87,7 @@ const ReportCheaters = () => {
       setIsSubmitting(true);
       
       // Submit the new report
-      await submitReport({ username: normalizedUsername, evidence });
+      await submitReport({ username: validation.normalizedUsername, evidence });
       setMessage({ type: 'success', text: `User "${username}" has been reported successfully!` });
       setUsername('');
       setEvidence('');

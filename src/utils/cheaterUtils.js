@@ -187,3 +187,37 @@ export async function fetchPendingAppealsCount() {
   const querySnapshot = await getCountFromServer(q);
   return querySnapshot.data().count;
 }
+
+/**
+ * Validates if a Codeforces username exists by checking the Codeforces API
+ * @param {string} username - The username to validate
+ * @returns {Promise<{exists: boolean, userInfo?: object, error?: string}>}
+ */
+export const validateCodeforcesUsername = async (username) => {
+  try {
+    // Convert username to lowercase and remove all whitespace for case-insensitive, space-insensitive validation
+    const normalizedUsername = username.trim().replace(/\s+/g, '').toLowerCase();
+    
+    // Check if the user exists on Codeforces
+    const cfResponse = await fetch(`https://codeforces.com/api/user.info?handles=${normalizedUsername}&checkHistoricHandles=false`);
+    const cfData = await cfResponse.json();
+    
+    if (cfData.status !== 'OK' || !cfData.result || cfData.result.length === 0) {
+      return {
+        exists: false,
+        error: `User "${normalizedUsername}" does not exist on Codeforces.`
+      };
+    }
+    
+    return {
+      exists: true,
+      userInfo: cfData.result[0],
+      normalizedUsername
+    };
+  } catch (error) {
+    return {
+      exists: false,
+      error: 'Failed to validate username. Please try again.'
+    };
+  }
+};

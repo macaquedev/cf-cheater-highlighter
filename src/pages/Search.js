@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, Input, Heading, VStack, Text, Skeleton } from '@chakra-ui/react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { findCheaterByUsername } from '../utils/cheaterUtils';
+import { findCheaterByUsername, validateCodeforcesUsername } from '../utils/cheaterUtils';
 
 const Search = () => {
   const [username, setUsername] = useState('');
@@ -33,9 +33,17 @@ const Search = () => {
         setLoading(false);
         return;
       }
-      // Convert username to lowercase for case-insensitive search
-      const searchUsername = username.trim().toLowerCase();
-      const cheater = await findCheaterByUsername({ username: searchUsername });
+
+      // First validate if the username exists on Codeforces
+      const validation = await validateCodeforcesUsername(username);
+      if (!validation.exists) {
+        setResult({ status: 'user_not_found', error: validation.error });
+        setLoading(false);
+        return;
+      }
+
+      // Username exists, now search for cheater status
+      const cheater = await findCheaterByUsername({ username: validation.normalizedUsername });
       if (cheater) {
         setResult({ 
           status: 'cheater', 
@@ -113,12 +121,19 @@ const Search = () => {
           <Box 
             mt={8}
             borderWidth={2}
-            borderColor={result.status === 'cheater' ? 'red.400' : 'green.400'}
+            borderColor={
+              result.status === 'cheater' ? 'red.400' : 
+              result.status === 'user_not_found' ? 'orange.400' : 
+              'green.400'
+            }
             borderRadius="md"
             p={6}
             bg="white"
             _dark={{ 
-              borderColor: result.status === 'cheater' ? 'red.500' : 'green.500',
+              borderColor: 
+                result.status === 'cheater' ? 'red.500' : 
+                result.status === 'user_not_found' ? 'orange.500' : 
+                'green.500',
               bg: "gray.700" 
             }}
           >
@@ -135,6 +150,15 @@ const Search = () => {
                     Reported on: {result.reportedAt.toDate ? result.reportedAt.toDate().toLocaleDateString() : 'Unknown date'}
                   </Text>
                 )}
+              </VStack>
+            ) : result.status === 'user_not_found' ? (
+              <VStack align="stretch" spacing={4}>
+                <Text fontWeight="bold" color="orange.500" _dark={{ color: "orange.400" }} fontSize="xl" textAlign="center">
+                  User Does Not Exist
+                </Text>
+                <Text color="gray.600" _dark={{ color: "gray.300" }} textAlign="center" fontSize="sm">
+                  {result.error}
+                </Text>
               </VStack>
             ) : (
               <Text fontWeight="bold" color="green.500" _dark={{ color: "green.400" }} fontSize="xl" textAlign="center">
