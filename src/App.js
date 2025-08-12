@@ -61,8 +61,8 @@ function Navbar({ user, onLogout, pendingCount, pendingAppealsCount }) {
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [pendingAppealsCount, setPendingAppealsCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(null);
+  const [pendingAppealsCount, setPendingAppealsCount] = useState(null);
 
   const handleLogout = async () => {
     try {
@@ -73,24 +73,25 @@ function App() {
   };
 
   // Fetch counts when user changes
+  const fetchCounts = async () => {
+    try {
+      const [reportsCount, appealsCount] = await Promise.all([
+        fetchPendingReportsCount(),
+        fetchPendingAppealsCount()
+      ]);
+      setPendingCount(reportsCount);
+      setPendingAppealsCount(appealsCount);
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
-      const fetchCounts = async () => {
-        try {
-          const [reportsCount, appealsCount] = await Promise.all([
-            fetchPendingReportsCount(),
-            fetchPendingAppealsCount()
-          ]);
-          setPendingCount(reportsCount);
-          setPendingAppealsCount(appealsCount);
-        } catch (error) {
-          console.error('Error fetching counts:', error);
-        }
-      };
       fetchCounts();
     } else {
-      setPendingCount(0);
-      setPendingAppealsCount(0);
+      setPendingCount(null);
+      setPendingAppealsCount(null);
     }
   }, [user]);
 
