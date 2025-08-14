@@ -22,6 +22,9 @@
 # Firebase service account key (contains sensitive credentials)
 serviceAccountKey.json
 
+# Firebase config
+firebaseConfig.js
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

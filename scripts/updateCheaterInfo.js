@@ -153,7 +153,6 @@ async function processBatch(cheatersBatch, batchNumber) {
   if (updateCount > 0 || deleteCount > 0) {
     console.log(`Committing batch: ${updateCount} updates, ${deleteCount} deletes...`);
     await batch.commit();
-    // ! test before production to make sure counts are reasonable
     console.log(`✓ Batch ${batchNumber} completed: ${updateCount} updated, ${deleteCount} deleted`);
   } else {
     console.log(`✓ Batch ${batchNumber} completed: No updates or deletes needed`);
