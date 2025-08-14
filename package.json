@@ -34,9 +34,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "import-cheaters": "node scripts/importCheaters.js",
     "export-cheaters": "node scripts/exportCheaters.js",
-    "update-ratings": "node scripts/updateCheaterRatings.js"
+    "update-cheater-info": "node scripts/updateCheaterInfo.js"
   },
   "eslintConfig": {
     "extends": [
