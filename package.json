@@ -35,7 +35,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "export-cheaters": "node scripts/exportCheaters.js",
-    "update-cheater-info": "node scripts/updateCheaterInfo.js"
+    "update-cheaters": "node scripts/updateCheaterInfo.js"
   },
   "eslintConfig": {
     "extends": [

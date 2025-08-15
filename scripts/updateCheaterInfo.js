@@ -85,11 +85,10 @@ async function processBatch(cheatersBatch, batchNumber) {
   
   // Extract usernames from this batch
   const usernames = cheatersBatch.map(cheater => cheater.username);
-  console.log(`Fetching user info for ${usernames.length} usernames...`);
+  console.log(`Fetching user info for ${usernames.length} users...`);
   
   // Fetch user info from Codeforces API
   const userInfoMap = await fetchUserInfo(usernames);
-  console.log(userInfoMap.size);
   console.log(`Retrieved info for ${userInfoMap.size} users`);
 
   if (userInfoMap.size === 0) {

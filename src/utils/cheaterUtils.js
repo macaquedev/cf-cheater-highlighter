@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, getDocs, query, where, getCountFromServer, doc, deleteDoc, addDoc, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, getCountFromServer, doc, deleteDoc, addDoc, orderBy, updateDoc, startAfter, limit } from 'firebase/firestore';
 
 /**
  * Fetch the total number of cheaters matching a search term.
@@ -25,13 +25,14 @@ export async function fetchTotalCheaters(searchTerm = '') {
 }
 
 /**
- * Fetch cheaters for a given page and search term.
+ * Fetch cheaters for a given page and search term using server-side pagination.
  * @param {number} page
  * @param {string} searchTerm
  * @param {number} [pageSize=20]
- * @returns {Promise<Array>} Array of cheater objects for the page
+ * @param {object} [pageCursors] - Map of page numbers to Firestore document snapshots
+ * @returns {Promise<{ cheaters: Array, lastVisible: object|null }>} Array of cheater objects for the page and lastVisible doc
  */
-export async function fetchCheaters(page, searchTerm = '', pageSize = 20) {
+export async function fetchCheaters(page, searchTerm = '', pageSize = 20, pageCursors = {}) {
   let cheatersRef = collection(db, 'cheaters');
   let q;
   if (searchTerm) {
@@ -40,22 +41,27 @@ export async function fetchCheaters(page, searchTerm = '', pageSize = 20) {
       where('username', '>=', searchTerm.toLowerCase()),
       where('username', '<=', searchTerm.toLowerCase() + '\uf8ff'),
       orderBy('username'),
-      orderBy('reportedAt', 'desc')
+      orderBy('reportedAt', 'desc'),
+      limit(pageSize)
     );
   } else {
     q = query(
       cheatersRef,
-      orderBy('reportedAt', 'desc')
+      orderBy('reportedAt', 'desc'),
+      limit(pageSize)
     );
   }
+  // For pages > 1, use startAfter with the lastVisible doc from previous page
+  if (page > 1 && pageCursors[page - 1]) {
+    q = query(q, startAfter(pageCursors[page - 1]));
+  }
   const querySnapshot = await getDocs(q);
-  const allCheaters = [];
+  const cheaters = [];
   querySnapshot.forEach((docu) => {
-    allCheaters.push({ id: docu.id, ...docu.data() });
+    cheaters.push({ id: docu.id, ...docu.data() });
   });
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  return allCheaters.slice(startIndex, endIndex);
+  const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+  return { cheaters, lastVisible };
 }
 
 /**

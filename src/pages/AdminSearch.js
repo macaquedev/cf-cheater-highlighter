@@ -36,6 +36,8 @@ const AdminSearch = () => {
   const [totalCheaters, setTotalCheaters] = useState(0); // Total count of cheaters
   const [totalPages, setTotalPages] = useState(1); // Total number of pages
 
+  // Store page cursors for Firestore pagination
+  const [pageCursors, setPageCursors] = useState({});
   const [pageCache, setPageCache] = useState({});
   const [isNavigating, setIsNavigating] = useState(false);
   const lastKeyPressTime = useRef(0);
@@ -160,6 +162,39 @@ const AdminSearch = () => {
     // eslint-disable-next-line
   }, [currentPage]);
 
+  // Fetch cheaters with page-based pagination and caching
+  const fetchCheaters = async (search = '') => {
+    const cacheKey = JSON.stringify([search, currentPage]);
+    if (loadFromCache(cacheKey)) return;
+    setTableLoading(true);
+    try {
+      // Use pageCursors for server-side pagination
+      const { cheaters, lastVisible } = await fetchCheatersUtil(currentPage, search, PAGE_SIZE, pageCursors);
+      setAllCheaters(cheaters);
+      // Store lastVisible doc for next page
+      setPageCache(prev => ({
+        ...prev,
+        [cacheKey]: {
+          data: cheaters,
+          totalPages,
+          totalCheaters,
+          lastVisible
+        }
+      }));
+      setPageCursors(prev => {
+        // Only update if lastVisible exists
+        if (lastVisible) {
+          return { ...prev, [currentPage]: lastVisible };
+        }
+        return prev;
+      });
+    } catch (error) {
+      showMessage('Error fetching cheaters: ' + error.message, 'error');
+    } finally {
+      setTableLoading(false);
+    }
+  };
+
   const showMessage = (text, type = 'info') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
@@ -175,21 +210,6 @@ const AdminSearch = () => {
     } catch (error) {
       console.error('Error fetching total cheaters:', error);
       setTotalCheaters(0);
-    }
-  };
-
-  // Fetch cheaters with page-based pagination and caching
-  const fetchCheaters = async (search = '') => {
-    const cacheKey = JSON.stringify([search, currentPage]);
-    if (loadFromCache(cacheKey)) return;
-    setTableLoading(true);
-    try {
-      const cheaters = await fetchCheatersUtil(currentPage, search, PAGE_SIZE);
-      setAllCheaters(cheaters);
-    } catch (error) {
-      showMessage('Error fetching cheaters: ' + error.message, 'error');
-    } finally {
-      setTableLoading(false);
     }
   };
 
