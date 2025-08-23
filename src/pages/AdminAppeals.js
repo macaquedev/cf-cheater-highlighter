@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Heading, VStack, Text, HStack, Input, Flex } from '@chakra-ui/react';
-import { db, auth } from '../firebase';
-import { collection, getDocs, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Link, useNavigate } from 'react-router-dom';
+import { Box, Button, Heading, VStack, Text, Flex } from '@chakra-ui/react';
+import { db } from '../firebase';
+import { collection, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { useCollection } from 'react-firebase-hooks/firestore';
+import { deleteCheater } from '../utils/cheaterUtils';
 
 const AdminAppeals = () => {
   const { user } = useAuth();
@@ -82,12 +83,12 @@ const AdminAppeals = () => {
   }, [pendingAppealsError]);
 
   const handleAcceptAppeal = async (appeal) => {
+    // Find and delete the cheater using the utility function
     const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
     const cheaterSnapshot = await getDocs(cheaterQuery);
     if (!cheaterSnapshot.empty) {
-      // Delete all cheater docs for this username
-      const deletePromises = cheaterSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'cheaters', docSnap.id)));
-      await Promise.all(deletePromises);
+      const cheaterData = { id: cheaterSnapshot.docs[0].id, ...cheaterSnapshot.docs[0].data() };
+      await deleteCheater(cheaterData);
     }
     await deleteDoc(doc(db, 'appeals', appeal.id));
     setMessage({ type: 'success', text: 'Appeal accepted and user completely removed from cheaters.' });
