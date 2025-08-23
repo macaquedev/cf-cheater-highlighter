@@ -70,9 +70,13 @@ const AdminReports = () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
     
-    // Check if user is already in cheaters collection
+    // Check if user is already marked as a cheater
     const cheatersRef = collection(db, 'cheaters');
-    const existingCheaterQuery = query(cheatersRef, where('username', '==', report.username.toLowerCase()));
+    const existingCheaterQuery = query(
+      cheatersRef, 
+      where('username', '==', report.username.toLowerCase()),
+      where('markedForDeletion', '!=', true)
+    );
     const existingCheaterSnapshot = await getDocs(existingCheaterQuery);
 
     if (!existingCheaterSnapshot.empty) {

@@ -51,7 +51,11 @@ const ReportCheaters = () => {
 
       // Check if user is already marked as a cheater
       const cheatersRef = collection(db, 'cheaters');
-      const cheaterQuery = query(cheatersRef, where('username', '==', validation.normalizedUsername));
+      const cheaterQuery = query(
+        cheatersRef, 
+        where('username', '==', validation.normalizedUsername),
+        where('markedForDeletion', '!=', true)
+      );
       const cheaterSnapshot = await getDocs(cheaterQuery);
       
       if (!cheaterSnapshot.empty) {

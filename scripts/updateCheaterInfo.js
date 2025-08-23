@@ -139,6 +139,8 @@ async function processBatch(cheatersBatch, batchNumber) {
 
       // only update if there are changes (to save writes)
       if (Object.keys(updateData).length !== 0) {
+        // Always add lastModified timestamp when updating
+        updateData.lastModified = new Date();
         batch.update(cheaterRef, updateData);
         updateCount++;
       }
@@ -163,7 +165,7 @@ async function processBatch(cheatersBatch, batchNumber) {
 // Helper function to get all cheaters
 async function getAllCheaters() {
   const cheatersRef = db.collection('cheaters');
-  const snapshot = await cheatersRef.get();
+  const snapshot = await cheatersRef.where('markedForDeletion', '!=', true).get();
   
   const cheaters = [];
   snapshot.forEach(doc => {

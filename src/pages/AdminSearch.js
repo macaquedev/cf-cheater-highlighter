@@ -197,7 +197,6 @@ const AdminSearch = () => {
 
   const showMessage = (text, type = 'info') => {
     setMessage({ text, type });
-    setTimeout(() => setMessage(null), 4000);
   };
 
   // Fetch total count of cheaters for display

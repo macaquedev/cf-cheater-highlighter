@@ -13,11 +13,13 @@ export async function fetchTotalCheaters(searchTerm = '') {
     q = query(
       cheatersRef,
       where('username', '>=', searchTerm.toLowerCase()),
-      where('username', '<=', searchTerm.toLowerCase() + '\uf8ff')
+      where('username', '<=', searchTerm.toLowerCase() + '\uf8ff'),
+      where('markedForDeletion', '!=', true)
     );
   } else {
     q = query(
-      cheatersRef
+      cheatersRef,
+      where('markedForDeletion', '!=', true)
     );
   }
   const querySnapshot = await getCountFromServer(q);
@@ -40,6 +42,7 @@ export async function fetchCheaters(page, searchTerm = '', pageSize = 20, pageCu
       cheatersRef,
       where('username', '>=', searchTerm.toLowerCase()),
       where('username', '<=', searchTerm.toLowerCase() + '\uf8ff'),
+      where('markedForDeletion', '!=', true),
       orderBy('username'),
       orderBy('reportedAt', 'desc'),
       limit(pageSize)
@@ -47,6 +50,7 @@ export async function fetchCheaters(page, searchTerm = '', pageSize = 20, pageCu
   } else {
     q = query(
       cheatersRef,
+      where('markedForDeletion', '!=', true),
       orderBy('reportedAt', 'desc'),
       limit(pageSize)
     );
@@ -93,7 +97,13 @@ export async function moveToPending(cheater, user) {
     movedToPendingBy: user.email,
     movedToPendingAt: new Date(),
   });
-  await deleteDoc(doc(db, 'cheaters', cheater.id));
+  // Mark for deletion instead of actually deleting
+  await updateDoc(doc(db, 'cheaters', cheater.id), { 
+    markedForDeletion: true,
+    deletionReason: 'moved_to_pending',
+    deletionTimestamp: new Date(),
+    lastModified: new Date()
+  });
 }
 
 /**
@@ -103,7 +113,13 @@ export async function moveToPending(cheater, user) {
  */
 export async function deleteCheater(cheater) {
   await deleteAllReportsForUsername(cheater.username);
-  await deleteDoc(doc(db, 'cheaters', cheater.id));
+  // Mark for deletion instead of actually deleting
+  await updateDoc(doc(db, 'cheaters', cheater.id), { 
+    markedForDeletion: true,
+    deletionReason: 'appeal_accepted',
+    deletionTimestamp: new Date(),
+    lastModified: new Date()
+  });
 }
 
 /**
@@ -114,18 +130,57 @@ export async function deleteCheater(cheater) {
  */
 export async function setAdminNote(cheater, note) {
   const cheaterRef = doc(db, 'cheaters', cheater.id);
-  await updateDoc(cheaterRef, { adminNote: note });
+  await updateDoc(cheaterRef, { 
+    adminNote: note,
+    lastModified: new Date()
+  });
 }
 
 export async function addCheaterToDatabase({ report, adminNote, user }) {
-  await addDoc(collection(db, 'cheaters'), {
-    username: report.username.toLowerCase(),
-    evidence: report.evidence,
-    adminNote: adminNote.trim() || null,
-    reportedAt: report.reportedAt || new Date(),
-    acceptedBy: user.email,
-    acceptedAt: new Date(),
-  });
+  // Check if there's an existing cheater (including marked for deletion)
+  const cheatersRef = collection(db, 'cheaters');
+  const existingCheaterQuery = query(cheatersRef, where('username', '==', report.username.toLowerCase()));
+  const existingCheaterSnapshot = await getDocs(existingCheaterQuery);
+  
+  if (!existingCheaterSnapshot.empty) {
+    const existingCheater = existingCheaterSnapshot.docs[0];
+    const existingData = existingCheater.data();
+    
+    if (existingData.markedForDeletion) {
+      // If marked for deletion, unmark it and update with new data
+      await updateDoc(existingCheater.ref, {
+        markedForDeletion: false,
+        deletionReason: null,
+        deletionTimestamp: null,
+        evidence: report.evidence,
+        adminNote: adminNote.trim() || null,
+        reportedAt: report.reportedAt || new Date(),
+        acceptedBy: user.email,
+        acceptedAt: new Date(),
+        lastModified: new Date(),
+      });
+    } else {
+      // If not marked for deletion, just update the existing document
+      await updateDoc(existingCheater.ref, {
+        evidence: report.evidence,
+        adminNote: adminNote.trim() || null,
+        lastModified: new Date(),
+      });
+    }
+  } else {
+    // Create new cheater document
+    await addDoc(collection(db, 'cheaters'), {
+      username: report.username.toLowerCase(),
+      evidence: report.evidence,
+      adminNote: adminNote.trim() || null,
+      reportedAt: report.reportedAt || new Date(),
+      acceptedBy: user.email,
+      acceptedAt: new Date(),
+      lastModified: new Date(),
+      markedForDeletion: false,
+    });
+  }
+  
   await updateDoc(doc(db, 'reports', report.id), { status: 'accepted' });
   const reportsRef = collection(db, 'reports');
   const duplicateQuery = query(
@@ -164,7 +219,11 @@ export async function submitReport({ username, evidence }) {
 
 export async function findCheaterByUsername({ username }) {
   const cheatersRef = collection(db, 'cheaters');
-  const q = query(cheatersRef, where('username', '==', username));
+  const q = query(
+    cheatersRef, 
+    where('username', '==', username),
+    where('markedForDeletion', '!=', true)
+  );
   const querySnapshot = await getDocs(q);
   if (!querySnapshot.empty) {
     return querySnapshot.docs[0].data();

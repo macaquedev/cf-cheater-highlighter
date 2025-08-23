@@ -50,7 +50,11 @@ const AdminAppeals = () => {
           if (appeal.status === 'declined') continue;
           
           // Fetch cheater evidence for this user
-          const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
+          const cheaterQuery = query(
+            collection(db, 'cheaters'), 
+            where('username', '==', appeal.username),
+            where('markedForDeletion', '!=', true)
+          );
           const cheaterSnapshot = await getDocs(cheaterQuery);
           if (!cheaterSnapshot.empty) {
             appeal.cheaterEvidence = cheaterSnapshot.docs[0].data().evidence;
@@ -84,7 +88,11 @@ const AdminAppeals = () => {
 
   const handleAcceptAppeal = async (appeal) => {
     // Find and delete the cheater using the utility function
-    const cheaterQuery = query(collection(db, 'cheaters'), where('username', '==', appeal.username));
+    const cheaterQuery = query(
+      collection(db, 'cheaters'), 
+      where('username', '==', appeal.username),
+      where('markedForDeletion', '!=', true)
+    );
     const cheaterSnapshot = await getDocs(cheaterQuery);
     if (!cheaterSnapshot.empty) {
       const cheaterData = { id: cheaterSnapshot.docs[0].id, ...cheaterSnapshot.docs[0].data() };
@@ -96,7 +104,10 @@ const AdminAppeals = () => {
   };
 
   const handleDeclineAppeal = async (appeal) => {
-    await updateDoc(doc(db, 'appeals', appeal.id), { status: 'declined' });
+    await updateDoc(doc(db, 'appeals', appeal.id), { 
+      status: 'declined',
+      lastModified: new Date()
+    });
     setMessage({ type: 'info', text: 'Appeal declined.' });
     // No need to manually update state - the Firebase hook will automatically update the data
   };

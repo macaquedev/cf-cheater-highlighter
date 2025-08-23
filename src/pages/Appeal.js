@@ -34,7 +34,11 @@ const Appeal = () => {
 
   const checkUserInCheatersDB = async (normalizedUsername) => {
     const cheatersRef = collection(db, 'cheaters');
-    const cheaterQuery = query(cheatersRef, where('username', '==', normalizedUsername));
+    const cheaterQuery = query(
+      cheatersRef, 
+      where('username', '==', normalizedUsername),
+      where('markedForDeletion', '!=', true)
+    );
     const cheaterSnapshot = await getDocs(cheaterQuery);
     
     if (cheaterSnapshot.empty) {
