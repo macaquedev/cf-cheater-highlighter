@@ -2,19 +2,16 @@ require('dotenv').config();
 const fs = require('fs');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin SDK
-// You'll need to download your service account key from Firebase Console
-// Go to Project Settings > Service Accounts > Generate New Private Key
-// Save it as 'serviceAccountKey.json' in your project root
 let serviceAccount;
 try {
   serviceAccount = require('../serviceAccountKey.json');
 } catch (error) {
-  console.error('❌ serviceAccountKey.json not found!');
-  console.log('Please download your service account key from Firebase Console:');
-  console.log('1. Go to Project Settings > Service Accounts');
-  console.log('2. Click "Generate New Private Key"');
-  console.log('3. Save the file as "serviceAccountKey.json" in your project root');
+  if (error?.code === "MODULE_NOT_FOUND") {
+    console.error('❌ serviceAccountKey.json not found!');
+    console.log('Please ensure that serviceAccountKey.json is located in the project root');
+  } else {
+    console.error(error);
+  }
   process.exit(1);
 }
 
@@ -45,17 +42,14 @@ async function exportCheaters() {
           cheatersData.cheaters = existingData;
           console.log(`📖 Found existing cheaters.json with ${cheatersData.cheaters.length} cheaters (old format)`);
         } else {
-          // Unknown format, start fresh
-          console.log('⚠️  Unknown format in existing cheaters.json, starting fresh');
-        }
-        
-        // Ensure we only have usernames, not full objects
-        if (cheatersData.cheaters.length > 0 && typeof cheatersData.cheaters[0] === 'object') {
-          console.log('🔄 Converting existing data from objects to usernames...');
-          cheatersData.cheaters = cheatersData.cheaters.map(c => typeof c === 'string' ? c : c.username);
+          // Unknown format
+          console.error('⚠️ Invalid format for cheaters.json');
+          process.exit(1);
         }
       } catch (error) {
-        console.log('⚠️  Error reading existing cheaters.json, starting fresh');
+        console.log('⚠️ Error reading existing cheaters.json');
+        console.log(error);
+        process.exit(1);
       }
     }
     
@@ -172,16 +166,8 @@ async function exportCheaters() {
     // Log some stats
     if (lastExportTime) {
       const timeDiff = new Date() - new Date(lastExportTime);
-      const hoursDiff = Math.round(timeDiff / (1000 * 60 * 60));
-      console.log(`⏰ Time since last export: ${hoursDiff} hours`);
-    }
-    
-    // Log deletion details if any
-    if (cheatersToRemove.length > 0) {
-      console.log('\n🗑️  Deletion details:');
-      cheatersToRemove.forEach(cheater => {
-        console.log(`  - ${cheater.username}: ${cheater.deletionReason}`);
-      });
+      const hoursDiff = Math.round(timeDiff / (1000 * 60));
+      console.log(`⏰ Time since last export: ${hoursDiff} minutes`);
     }
     
     console.log(`\n✅ Export completed successfully!`);
