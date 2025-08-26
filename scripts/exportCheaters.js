@@ -23,11 +23,10 @@ const db = admin.firestore();
 
 async function exportCheaters() {
   console.log('🚀 Starting cheater export process...');
-  
+
   try {
     // Read existing cheaters.json to get last export time
-    let cheatersData = { cheaters: [], lastExportTime: null, lastExportCount: 0, newCheatersInThisExport: 0 };
-    
+    let cheatersData = { cheaters: [], lastExportTime: null };
     if (fs.existsSync('./cheaters.json')) {
       try {
         const existingData = JSON.parse(fs.readFileSync('./cheaters.json', 'utf8'));
@@ -52,10 +51,10 @@ async function exportCheaters() {
         process.exit(1);
       }
     }
-    
+
     const lastExportTime = cheatersData.lastExportTime;
-    const existingCheaters = new Map(cheatersData.cheaters.map(c => [c, c]));
-    
+    const existingCheaters = new Set(cheatersData.cheaters);
+
     // Build query based on last export time
     let cheatersQuery;
     if (lastExportTime) {
@@ -71,9 +70,8 @@ async function exportCheaters() {
     }
 
     const snapshot = await cheatersQuery.get();
-    const newCheaters = [];
+    const cheatersToAdd = [];
     const cheatersToRemove = [];
-    const cheatersToUpdate = [];
     
     console.log(`📊 Found ${snapshot.docs.length} modified documents`);
     
@@ -81,102 +79,68 @@ async function exportCheaters() {
     snapshot.forEach(doc => {
       const cheaterData = doc.data();
       const username = cheaterData.username;
-      
+      if (!username) return;
       if (cheaterData.markedForDeletion) {
-        // Document is marked for deletion
-        cheatersToRemove.push({
-          username,
-          deletionReason: cheaterData.deletionReason || 'unknown',
-          docId: doc.id
-        });
-        
-        // Remove from existing cheaters if present
-        if (existingCheaters.has(username)) {
-          existingCheaters.delete(username);
-        }
+        cheatersToRemove.push({ username, docId: doc.id });
       } else {
-        // Document is active or updated
-        const cheater = {
-          username,
-          evidence: cheaterData.evidence,
-          adminNote: cheaterData.adminNote,
-          reportedAt: cheaterData.reportedAt?.toDate?.() || cheaterData.reportedAt,
-          acceptedBy: cheaterData.acceptedBy,
-          acceptedAt: cheaterData.acceptedAt?.toDate?.() || cheaterData.acceptedAt,
-          lastModified: cheaterData.lastModified?.toDate?.() || cheaterData.lastModified
-        };
-        
-        if (existingCheaters.has(username)) {
-          // Update existing cheater
-          existingCheaters.set(username, cheater);
-          cheatersToUpdate.push(username);
-        } else {
-          // New cheater
-          newCheaters.push(cheater);
-        }
+        // Document is added
+        cheatersToAdd.push(username);
       }
     });
-    
-    // Actually delete the documents marked for deletion from Firestore
+
+    // Remove cheaters marked for deletion from Firestore
     if (cheatersToRemove.length > 0) {
       console.log(`🗑️  Cleaning up ${cheatersToRemove.length} documents marked for deletion...`);
       
       // Delete in batches to avoid overwhelming Firestore
       const batchSize = 500; // Firestore batch limit
-      let totalDeleted = 0;
       
       for (let i = 0; i < cheatersToRemove.length; i += batchSize) {
         const batch = db.batch();
         const batchDocs = cheatersToRemove.slice(i, i + batchSize);
-        
-        batchDocs.forEach(cheater => {
-          const docRef = db.collection('cheaters').doc(cheater.docId);
+        batchDocs.forEach(({ docId }) => {
+          const docRef = db.collection('cheaters').doc(docId);
           batch.delete(docRef);
         });
         
         await batch.commit();
-        totalDeleted += batchDocs.length;
         console.log(`🗑️  Deleted batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(cheatersToRemove.length / batchSize)}: ${batchDocs.length} documents`);
       }
-      
-      console.log(`✅ Successfully deleted ${totalDeleted} cheater documents from Firestore`);
+      console.log(`✅ Successfully deleted ${cheatersToRemove.length} cheater documents from Firestore`);
     }
-    
-    // Convert existing cheaters map back to array
-    const finalCheaters = Array.from(existingCheaters.keys());
-    
-    // Add new cheaters
-    newCheaters.forEach(cheater => {
-      if (!finalCheaters.includes(cheater.username)) {
-        finalCheaters.push(cheater.username);
+
+    // Remove cheaters marked for deletion from local set
+    let changed = false;
+    cheatersToRemove.forEach(({ username }) => {
+      if (existingCheaters.has(username)) {
+        existingCheaters.delete(username);
+        changed = true;
       }
     });
-    
-    // Sort by username for consistency
-    finalCheaters.sort();
-    
-    // Update cheaters.json
-    const updatedData = {
-      cheaters: finalCheaters,
-      lastExportTime: new Date().toISOString()
-    };
-    
-    fs.writeFileSync('./cheaters.json', JSON.stringify(updatedData, null, 2));
-    
-    // Log some stats
-    if (lastExportTime) {
-      const timeDiff = new Date() - new Date(lastExportTime);
-      const hoursDiff = Math.round(timeDiff / (1000 * 60));
-      console.log(`⏰ Time since last export: ${hoursDiff} minutes`);
+
+    // Add new cheaters
+    cheatersToAdd.forEach(username => {
+      if (!existingCheaters.has(username)) {
+        existingCheaters.add(username);
+        changed = true;
+      }
+    });
+
+    // Only update file if there are changes
+    if (changed) {
+      const finalCheaters = Array.from(existingCheaters);
+      finalCheaters.sort();
+      const updatedData = {
+        cheaters: finalCheaters,
+        lastExportTime: new Date().toISOString()
+      };
+      fs.writeFileSync('./cheaters.json', JSON.stringify(updatedData, null, 2));
+      console.log(`\n✅ Export completed successfully!`);
+      console.log(`📊 Total cheaters: ${finalCheaters.length}`);
+      console.log(`💾 Data saved to cheaters.json`);
+    } else {
+      console.log('No changes detected. cheaters.json not updated.');
     }
-    
-    console.log(`\n✅ Export completed successfully!`);
-    console.log(`📊 Total cheaters: ${finalCheaters.length}`);
-    console.log(`🆕 New cheaters: ${newCheaters.length}`);
-    console.log(`🔄 Updated cheaters: ${cheatersToUpdate.length}`);
-    console.log(`🗑️  Deleted cheaters: ${cheatersToRemove.length}`);
-    console.log(`💾 Data saved to cheaters.json`);
-    
   } catch (error) {
     console.error('❌ Export failed:', error);
     process.exit(1);
