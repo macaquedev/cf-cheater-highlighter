@@ -134,12 +134,17 @@ const AdminReports = () => {
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         setCurrentIndex((i) => Math.min(i + 1, pendingReports.length - 1));
+      } else if (event.key === 'Enter' && event.ctrlKey) {
+        // Ctrl+Enter accepts the current report
+        if (actionLoading !== null) return;
+        event.preventDefault();
+        handleAcceptWithLoading();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [user, pendingReports.length]);
+  }, [user, pendingReports.length, actionLoading, handleAcceptWithLoading]);
 
   // Show loading while checking authentication
   if (!user) {
