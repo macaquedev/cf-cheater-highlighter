@@ -139,12 +139,17 @@ const AdminReports = () => {
         if (actionLoading !== null) return;
         event.preventDefault();
         handleAcceptWithLoading();
+      } else if (event.key === 'Backspace' && event.ctrlKey) {
+        // Ctrl+Backspace declines the current report
+        if (actionLoading !== null) return;
+        event.preventDefault();
+        handleDeclineWithLoading();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [user, pendingReports.length, actionLoading, handleAcceptWithLoading]);
+  }, [user, pendingReports.length, actionLoading, handleAcceptWithLoading, handleDeclineWithLoading]);
 
   // Show loading while checking authentication
   if (!user) {
