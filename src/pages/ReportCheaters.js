@@ -103,6 +103,20 @@ const ReportCheaters = () => {
     }
   };
 
+  // Keyboard shortcut: Ctrl+Enter submits the report
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Enter' && event.ctrlKey) {
+        if (isSubmitting || isChecking) return;
+        event.preventDefault();
+        // Call submit handler with a no-op preventDefault
+        handleSubmit({ preventDefault: () => {} });
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isSubmitting, isChecking, handleSubmit]);
+
   return (
     <Box maxW="2xl" mx="auto" px={6}>
       <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md">

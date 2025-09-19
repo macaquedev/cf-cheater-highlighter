@@ -139,8 +139,8 @@ const AdminReports = () => {
         if (actionLoading !== null) return;
         event.preventDefault();
         handleAcceptWithLoading();
-      } else if (event.key === 'Backspace' && event.ctrlKey) {
-        // Ctrl+Backspace declines the current report
+      } else if ((event.key === 'y' || event.key === 'Y') && event.ctrlKey) {
+        // Ctrl+Y declines the current report
         if (actionLoading !== null) return;
         event.preventDefault();
         handleDeclineWithLoading();
