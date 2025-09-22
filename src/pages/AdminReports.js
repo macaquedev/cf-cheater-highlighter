@@ -134,12 +134,22 @@ const AdminReports = () => {
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         setCurrentIndex((i) => Math.min(i + 1, pendingReports.length - 1));
+      } else if (event.key === 'Enter' && event.ctrlKey) {
+        // Ctrl+Enter accepts the current report
+        if (actionLoading !== null) return;
+        event.preventDefault();
+        handleAcceptWithLoading();
+      } else if ((event.key === 'y' || event.key === 'Y') && event.ctrlKey) {
+        // Ctrl+Y declines the current report
+        if (actionLoading !== null) return;
+        event.preventDefault();
+        handleDeclineWithLoading();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [user, pendingReports.length]);
+  }, [user, pendingReports.length, actionLoading, handleAcceptWithLoading, handleDeclineWithLoading]);
 
   // Show loading while checking authentication
   if (!user) {
