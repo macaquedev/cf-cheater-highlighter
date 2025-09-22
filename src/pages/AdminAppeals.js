@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Heading, VStack, Text, Flex } from '@chakra-ui/react';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -57,9 +58,12 @@ const AdminAppeals = () => {
           );
           const cheaterSnapshot = await getDocs(cheaterQuery);
           if (!cheaterSnapshot.empty) {
-            appeal.cheaterEvidence = cheaterSnapshot.docs[0].data().evidence;
+            const cheaterData = cheaterSnapshot.docs[0].data();
+            appeal.cheaterEvidence = cheaterData.evidence;
+            appeal.cheaterAdminNote = cheaterData.adminNote || null;
           } else {
             appeal.cheaterEvidence = null;
+            appeal.cheaterAdminNote = null;
           }
           appealsData.push(appeal);
         }
@@ -153,6 +157,24 @@ const AdminAppeals = () => {
     <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }} py={8} px={4}>
       <Flex align="center" justify="center" minH="70vh">
         <Box bg="white" _dark={{ bg: "gray.800" }} p={8} rounded="md" shadow="md" maxW="lg" w="100%">
+          {message && (
+            <Box 
+              p={4} 
+              mb={6} 
+              rounded="md" 
+              bg={message.type === 'error' ? 'red.100' : message.type === 'success' ? 'green.100' : 'blue.100'}
+              color={message.type === 'error' ? 'red.800' : message.type === 'success' ? 'green.800' : 'blue.800'}
+              borderWidth={1}
+              borderColor={message.type === 'error' ? 'red.200' : message.type === 'success' ? 'green.200' : 'blue.200'}
+              _dark={{
+                bg: message.type === 'error' ? 'red.900' : message.type === 'success' ? 'green.900' : 'blue.900',
+                color: message.type === 'error' ? 'red.200' : message.type === 'success' ? 'green.200' : 'blue.200',
+                borderColor: message.type === 'error' ? 'red.700' : message.type === 'success' ? 'green.700' : 'blue.700'
+              }}
+            >
+              <Text>{message.text}</Text>
+            </Box>
+          )}
           <Heading size="lg" mb={6} color="blue.600" _dark={{ color: 'blue.400' }} textAlign="center">
             Review Appeals
           </Heading>
@@ -239,7 +261,7 @@ const AdminAppeals = () => {
                   <Text>{appeals[currentIndex]?.message}</Text>
                 </Box>
                 <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
-                  Evidence (why marked as cheater):
+                  Evidence:
                 </Text>
                 <Box
                   mb={4}
@@ -258,6 +280,44 @@ const AdminAppeals = () => {
                 >
                   <Text>{appeals[currentIndex]?.cheaterEvidence || 'Not found'}</Text>
                 </Box>
+                <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                  Admin Note:
+                </Text>
+                {appeals[currentIndex]?.cheaterAdminNote ? (
+                  <Box
+                    mb={4}
+                    p={4}
+                    bg="blue.50"
+                    borderRadius="md"
+                    borderWidth={1}
+                    borderColor="gray.200"
+                    _dark={{ 
+                      bg: "gray.600",
+                      borderColor: "gray.500" 
+                    }}
+                    maxH="200px"
+                    overflowY="auto"
+                  >
+                    <MarkdownRenderer>{appeals[currentIndex]?.cheaterAdminNote}</MarkdownRenderer>
+                  </Box>
+                ) : (
+                  <Box
+                    mb={4}
+                    p={4}
+                    bg="gray.50"
+                    borderRadius="md"
+                    borderWidth={1}
+                    borderColor="gray.200"
+                    _dark={{ 
+                      bg: "gray.700",
+                      borderColor: "gray.600" 
+                    }}
+                  >
+                    <Text color="gray.500" _dark={{ color: "gray.400" }} fontStyle="italic">
+                      No admin note provided
+                    </Text>
+                  </Box>
+                )}
                 <Flex gap={4}>
                   <Button 
                     colorPalette="green" 
