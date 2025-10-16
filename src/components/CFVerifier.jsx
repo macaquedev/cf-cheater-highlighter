@@ -5,7 +5,7 @@ import { FiRefreshCw } from 'react-icons/fi';
 
 const range = [100, 1000];
 
-const CFVerifier = forwardRef((props, ref) => {
+const CfVerifier = forwardRef((props, ref) => {
   const [contest, setContest] = useState(null);
   const [problem, setProblem] = useState('A');
   const [loading, setLoading] = useState(false);
@@ -88,6 +88,6 @@ const CFVerifier = forwardRef((props, ref) => {
   );
 });
 
-CFVerifier.displayName = 'CFVerifier';
+CfVerifier.displayName = 'CfVerifier';
 
-export default CFVerifier; 
+export default CfVerifier; 
