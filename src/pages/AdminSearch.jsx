@@ -11,6 +11,7 @@ import {
   deleteCheater,
   setAdminNote
 } from '../utils/cheaterUtils';
+import CfUser from '../components/CfUser';
 
 // Constants
 const PAGE_SIZE = 20;
@@ -351,7 +352,10 @@ const AdminSearch = () => {
                   <Table.Row key={cheater?.id || idx}>
                     <Table.Cell fontWeight="medium" whiteSpace="nowrap" textAlign="center">
                       <Skeleton loading={tableLoading || isNavigating} height="24px">
-                        {cheater?.username || ''}
+                        <CfUser
+                          username={cheater?.username}
+                          ratingInfo={cheater?.info}
+                        />
                       </Skeleton>
                     </Table.Cell>
                     <Table.Cell textAlign="center" width="120px">
