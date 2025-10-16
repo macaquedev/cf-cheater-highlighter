@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
-import CfVerifier from '../components/CfVerifier';
+import CFVerifier from '../components/CFVerifier';
 import { submitAppeal } from '../utils/cheaterUtils';
 
 const Appeal = () => {
@@ -116,7 +116,7 @@ const Appeal = () => {
           <br/>
           <b>Before you appeal, you must verify your identity by submitting a <u>compilation error</u> to the problem below.</b>
         </Text>
-        <CfVerifier ref={verificationRef} />
+        <CFVerifier ref={verificationRef} />
         {appealStatus && (
           <Box p={3} mb={4} rounded="md" bg={
             appealStatus.type === 'success' ? 'green.100' :
