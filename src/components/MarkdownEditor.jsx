@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Textarea, HStack, IconButton, Input, Button, Text } from '@chakra-ui/react';
-import { LuBold, LuItalic, LuCode, LuLink, LuLink2, LuEye, LuPencil, LuFileCode } from 'react-icons/lu';
+import React, { useState } from 'react';
+import { Box, Textarea, HStack, IconButton, Input, Button } from '@chakra-ui/react';
+import { LuBold, LuItalic, LuCode, LuLink2, LuEye, LuPencil, LuFileCode } from 'react-icons/lu';
 import MarkdownRenderer from './MarkdownRenderer';
 import './MarkdownEditor.css';
 
@@ -80,9 +80,6 @@ const MarkdownEditor = ({ value, onChange, placeholder = "Enter text...", rows =
   };
 
   const handleSelect = () => {
-    const textarea = document.getElementById('rich-text-editor');
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
   };
 
   return (

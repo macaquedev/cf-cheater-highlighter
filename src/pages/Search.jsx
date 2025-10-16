@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Box, Button, Input, Heading, VStack, Text, Skeleton } from '@chakra-ui/react';
-import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
 import { findCheaterByUsername, validateCodeforcesUsername } from '../utils/cheaterUtils';
 
 const Search = () => {

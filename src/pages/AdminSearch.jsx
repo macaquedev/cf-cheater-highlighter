@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton, SkeletonText } from '@chakra-ui/react';
+import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
@@ -7,7 +7,6 @@ import { useAuth } from '../App';
 import {
   fetchTotalCheaters as fetchTotalCheatersUtil,
   fetchCheaters as fetchCheatersUtil,
-  deleteAllReportsForUsername,
   moveToPending,
   deleteCheater,
   setAdminNote

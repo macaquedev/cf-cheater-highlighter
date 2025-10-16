@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Box, Flex, Button, Heading, Text, HStack } from '@chakra-ui/react';
-import { auth, db } from './firebase';
+import { auth } from './firebase';
 import { ColorModeButton } from './components/ui/color-mode';
 import ReportCheaters from './pages/ReportCheaters';
 import Search from './pages/Search';

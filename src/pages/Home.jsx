@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, VStack, Heading, Text, Button, Container, SimpleGrid, Icon, Flex } from '@chakra-ui/react';
+import { Box, VStack, Heading, Text, Button, Container, Icon, Flex } from '@chakra-ui/react';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaFlag, FaShieldAlt } from 'react-icons/fa';
 import { useAuth } from '../App';

@@ -1,14 +1,16 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Box, Text, Button } from '@chakra-ui/react';
 import { Icon } from '@chakra-ui/react';
 import { FiRefreshCw } from 'react-icons/fi';
 
-const CFVerifier = forwardRef(({ range = [100, 1000] }, ref) => {
+const range = [100, 1000];
+
+const CFVerifier = forwardRef((props, ref) => {
   const [contest, setContest] = useState(null);
   const [problem, setProblem] = useState('A');
   const [loading, setLoading] = useState(false);
 
-  const generateRandomProblem = async () => {
+  const generateRandomProblem = useCallback(async () => {
     const contestId = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
     const problemId = 'A';
     
@@ -19,7 +21,7 @@ const CFVerifier = forwardRef(({ range = [100, 1000] }, ref) => {
     
     setContest(contestId);
     setProblem(problemId);
-  };
+  }, [contest]);
 
   const handleReroll = async () => {
     setLoading(true);
@@ -57,7 +59,7 @@ const CFVerifier = forwardRef(({ range = [100, 1000] }, ref) => {
     if (contest === null) {
       generateRandomProblem();
     }
-  }, [contest]);
+  }, [contest, generateRandomProblem]);
 
   if (!contest) {
     return <Text>Loading verification problem...</Text>;

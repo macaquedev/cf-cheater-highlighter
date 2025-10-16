@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Button, Heading, VStack, Input, Text, Flex
+  Box, Button, Heading, VStack, Text, Flex
 } from '@chakra-ui/react';
-import { db, auth } from '../firebase';
-import { collection, getDocs, query, where, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { collection, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useNavigate } from 'react-router-dom';
@@ -66,7 +66,7 @@ const AdminReports = () => {
     }
   }, [pendingReportsError]);
 
-  const handleAccept = async () => {
+  const handleAccept = useCallback(async () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
     
@@ -91,9 +91,9 @@ const AdminReports = () => {
     setMessage({ type: 'success', text: messageText });
     setAdminNote('');
     // No need to manually refresh - the Firebase hook will automatically update the data
-  };
+  }, [pendingReports, currentIndex, adminNote, user]);
 
-  const handleDecline = async () => {
+  const handleDecline = useCallback(async () => {
     const report = pendingReports[currentIndex];
     if (!report) return;
 
@@ -101,15 +101,15 @@ const AdminReports = () => {
     setMessage({ type: 'info', text: 'Report declined.' });
     setAdminNote(''); // Clear admin note after declining
     // No need to manually refresh - the Firebase hook will automatically update the data
-  };
+  }, [pendingReports, currentIndex]);
 
-  const handleAcceptWithLoading = () => {
+  const handleAcceptWithLoading = useCallback(() => {
     withLoading('accept', handleAccept);
-  };
+  }, [handleAccept]);
 
-  const handleDeclineWithLoading = () => {
+  const handleDeclineWithLoading = useCallback(() => {
     withLoading('decline', handleDecline);
-  };
+  }, [handleDecline]);
 
   const handlePrev = () => {
     console.log('Previous clicked, current index:', currentIndex); // Debug log

@@ -1,7 +1,7 @@
 import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
 import { submitReport, validateCodeforcesUsername } from '../utils/cheaterUtils';
@@ -24,7 +24,7 @@ const ReportCheaters = () => {
     }
   }, [message]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!username.trim() || !evidence.trim()) {
       setMessage({ type: 'error', text: 'Please fill in all fields.' });
@@ -101,7 +101,7 @@ const ReportCheaters = () => {
       setIsSubmitting(false);
       setIsChecking(false);
     }
-  };
+  }, [evidence, username]);
 
   // Keyboard shortcut: Ctrl+Enter submits the report
   useEffect(() => {

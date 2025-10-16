@@ -1,7 +1,7 @@
 import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import CFVerifier from '../components/CFVerifier';
 import { submitAppeal } from '../utils/cheaterUtils';
@@ -13,16 +13,6 @@ const Appeal = () => {
   const [appealDisabled, setAppealDisabled] = useState(false);
   const [currentStep, setCurrentStep] = useState('');
   const verificationRef = useRef();
-
-  // Wrapper function to handle loading state
-  const withLoading = async (loadingSetter, asyncFunction) => {
-    loadingSetter(true);
-    try {
-      await asyncFunction();
-    } finally {
-      loadingSetter(false);
-    }
-  };
 
   const validateFormFields = () => {
     if (!appealUsername.trim() || !appealMessage.trim()) {
@@ -126,7 +116,7 @@ const Appeal = () => {
           <br/>
           <b>Before you appeal, you must verify your identity by submitting a <u>compilation error</u> to the problem below.</b>
         </Text>
-        <CFVerifier range={[100, 1000]} ref={verificationRef} />
+        <CFVerifier ref={verificationRef} />
         {appealStatus && (
           <Box p={3} mb={4} rounded="md" bg={
             appealStatus.type === 'success' ? 'green.100' :
