@@ -1,27 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton } from '@chakra-ui/react';
+import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton, Select, createListCollection } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
-import {
-  fetchTotalCheaters as fetchTotalCheatersUtil,
-  fetchCheaters as fetchCheatersUtil,
-  moveToPending,
-  deleteCheater,
-  setAdminNote
-} from '../utils/cheaterUtils';
+import { moveToPending, deleteCheater, setAdminNote } from '../utils/cheaterUtils';
+import { fetchPageData, fetchTotalCount } from '../utils/searchUtils';
 import CfUser from '../components/CfUser';
 
 // Constants
 const PAGE_SIZE = 20;
 const THROTTLE_DELAY = 100; // Consistent delay between key presses
 
+// Sort options for the dropdown
+const SORT_OPTIONS = [
+  { value: 'reportedAtDesc', label: 'Newest First' },
+  { value: 'reportedAtAsc', label: 'Oldest First' },
+  { value: 'usernameAsc', label: 'Username A-Z' },
+  { value: 'usernameDesc', label: 'Username Z-A' },
+];
+
+// Create collection for Select component
+const sortCollection = createListCollection({
+  items: SORT_OPTIONS,
+  itemToString: (item) => item.label,
+  itemToValue: (item) => item.value,
+});
+
 const AdminSearch = () => {
   const { user } = useAuth();
   const [allCheaters, setAllCheaters] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOption, setSortOption] = useState('reportedAtDesc');
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedCheater, setSelectedCheater] = useState(null);
 
@@ -38,10 +49,8 @@ const AdminSearch = () => {
 
   // Store page cursors for Firestore pagination
   const [pageCursors, setPageCursors] = useState({});
-  const [pageCache, setPageCache] = useState({});
   const [isNavigating, setIsNavigating] = useState(false);
   const lastKeyPressTime = useRef(0);
-  const [cheaterCountCache, setCheaterCountCache] = useState({});
 
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -133,30 +142,16 @@ const AdminSearch = () => {
   useEffect(() => {
     if (user) {
       setCurrentPage(1); // Reset to first page when search changes
-      setPageCache({}); // Clear cache when search changes
-      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined })); // Always reset skeleton
       fetchCheaters(searchTerm);
       fetchTotalCheaters(searchTerm); // Always fetch count
     }
     // eslint-disable-next-line
   }, [user, searchTerm]);
 
-  function loadFromCache(cacheKey) {
-    const cache = pageCache[cacheKey];
-    if (!cache) return false;
-    setAllCheaters(cache.data);
-    setTotalPages(Math.max(1, cache.totalPages));
-    setTotalCheaters(Number(cache.totalCheaters));
-    setTableLoading(false);
-    return true;
-  }
 
   // Refetch data when currentPage changes
   useEffect(() => {
     if (user) {
-      // Check cache before fetching
-      const cacheKey = JSON.stringify([searchTerm, currentPage]);
-      if (loadFromCache(cacheKey)) return;
       fetchCheaters(searchTerm);
     }
     // eslint-disable-next-line
@@ -164,25 +159,16 @@ const AdminSearch = () => {
 
   // Fetch cheaters with page-based pagination and caching
   const fetchCheaters = async (search = '') => {
-    const cacheKey = JSON.stringify([search, currentPage]);
-    if (loadFromCache(cacheKey)) return;
     setTableLoading(true);
     try {
-      // Use pageCursors for server-side pagination
-      const { cheaters, lastVisible } = await fetchCheatersUtil(currentPage, search, PAGE_SIZE, pageCursors);
+      const { cheaters, lastVisible } = await fetchPageData({
+        currentPage,
+        search,
+        pageSize: PAGE_SIZE,
+        pageCursors,
+      });
       setAllCheaters(cheaters);
-      // Store lastVisible doc for next page
-      setPageCache(prev => ({
-        ...prev,
-        [cacheKey]: {
-          data: cheaters,
-          totalPages,
-          totalCheaters,
-          lastVisible
-        }
-      }));
       setPageCursors(prev => {
-        // Only update if lastVisible exists
         if (lastVisible) {
           return { ...prev, [currentPage]: lastVisible };
         }
@@ -202,10 +188,9 @@ const AdminSearch = () => {
   // Fetch total count of cheaters for display
   const fetchTotalCheaters = async (search = '') => {
     try {
-      const total = await fetchTotalCheatersUtil(search);
+      const total = await fetchTotalCount({ search });
       setTotalCheaters(total);
       setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)));
-      setCheaterCountCache(prev => ({ ...prev, [search]: Number(total) }));
     } catch (error) {
       console.error('Error fetching total cheaters:', error);
       setTotalCheaters(0);
@@ -225,7 +210,7 @@ const AdminSearch = () => {
     try {
       await moveToPending(selectedCheater, user);
       showMessage(`User "${selectedCheater.username}" has been moved back to pending review.`, 'success');
-      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
+      // TODO: adjust cache?
       fetchCheaters(searchTerm);
       fetchTotalCheaters(searchTerm);
     } catch (error) {
@@ -250,7 +235,7 @@ const AdminSearch = () => {
     try {
       await deleteCheater(selectedCheater);
       showMessage(`User "${selectedCheater.username}" has been completely removed from the database.`, 'success');
-      setCheaterCountCache(prev => ({ ...prev, [searchTerm]: undefined }));
+      // TODO: adjust cache?
       fetchCheaters(searchTerm);
       fetchTotalCheaters(searchTerm);
     } catch (error) {
@@ -279,7 +264,6 @@ const AdminSearch = () => {
         setSelectedCheater(updatedCheater);
       }
       setAllCheaters(prev => prev.map(c => c.id === cheater.id ? updatedCheater : c));
-      setPageCache({});
       setEditingNote(false);
       setEditingNoteValue('');
       showMessage('Admin note updated.', 'success');
@@ -323,14 +307,48 @@ const AdminSearch = () => {
         )}
         <Heading size="lg" mb={6} color="blue.600" _dark={{ color: "blue.400" }} textAlign="center">Admin Search</Heading>
         <Box mb={6}>
-          <Input
-            placeholder="Search by username..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            size="lg"
-            borderColor="gray.300"
-            _dark={{ borderColor: "gray.400" }}
-          />
+          <HStack spacing={4} align="center">
+            <Input
+              placeholder="Search by username..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              size="lg"
+              height="48px"
+              flex="1"
+            />
+            <Select.Root
+              collection={sortCollection}
+              value={[sortOption]}
+              onValueChange={(e) => setSortOption(e.value[0])}
+              width="200px"
+              size="lg"
+            >
+              <Select.HiddenSelect />
+              <Select.Control>
+                <Select.Trigger height="48px">
+                  <Select.ValueText>
+                    {sortCollection.items.find(opt => opt.value === sortOption)?.label}
+                  </Select.ValueText>
+                  {/* <Select.ValueText placeholder="Sort by..." /> */}
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  <Select.Indicator />
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Portal>
+                <Select.Positioner>
+                  <Select.Content>
+                    {sortCollection.items.map((option) => (
+                      <Select.Item item={option} key={option.value}>
+                        {option.label}
+                        <Select.ItemIndicator />
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Positioner>
+              </Portal>
+            </Select.Root>
+          </HStack>
         </Box>
         {allCheaters.length === 0 && !tableLoading ? (
           <Text textAlign="center" py={8} color="gray.500" _dark={{ color: "gray.400" }}>
@@ -442,11 +460,9 @@ const AdminSearch = () => {
           </Box>
         )}
         <Box mt={4} textAlign="center">
-          <Skeleton loading={cheaterCountCache[searchTerm] === undefined} mx="auto" display="inline-block">
+          <Skeleton loading={false} mx="auto" display="inline-block">
             <Text fontSize="sm" color="gray.500" _dark={{ color: "gray.400" }}>
-              {totalCheaters > 0 || tableLoading
-                ? `Page ${currentPage} of ${totalPages} • ${allCheaters.length} of ${totalCheaters} cheaters`
-                : '\u00A0'}
+              Page {currentPage} of {totalPages} • {allCheaters.length} of {totalCheaters} cheaters
             </Text>
           </Skeleton>
         </Box>

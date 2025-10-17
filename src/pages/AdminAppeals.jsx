@@ -54,7 +54,7 @@ const AdminAppeals = () => {
           const cheaterQuery = query(
             collection(db, 'cheaters'), 
             where('username', '==', appeal.username),
-            where('markedForDeletion', '!=', true)
+            where('markedForDeletion', '==', false)
           );
           const cheaterSnapshot = await getDocs(cheaterQuery);
           if (!cheaterSnapshot.empty) {
@@ -95,7 +95,7 @@ const AdminAppeals = () => {
     const cheaterQuery = query(
       collection(db, 'cheaters'), 
       where('username', '==', appeal.username),
-      where('markedForDeletion', '!=', true)
+      where('markedForDeletion', '==', false)
     );
     const cheaterSnapshot = await getDocs(cheaterQuery);
     if (!cheaterSnapshot.empty) {

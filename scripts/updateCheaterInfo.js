@@ -165,7 +165,7 @@ async function processBatch(cheatersBatch, batchNumber) {
 // Helper function to get all cheaters
 async function getAllCheaters() {
   const cheatersRef = db.collection('cheaters');
-  const snapshot = await cheatersRef.where('markedForDeletion', '!=', true).get();
+  const snapshot = await cheatersRef.where('markedForDeletion', '==', false).get();
   
   const cheaters = [];
   snapshot.forEach(doc => {

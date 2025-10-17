@@ -54,7 +54,7 @@ const ReportCheaters = () => {
       const cheaterQuery = query(
         cheatersRef, 
         where('username', '==', validation.normalizedUsername),
-        where('markedForDeletion', '!=', true)
+        where('markedForDeletion', '==', false)
       );
       const cheaterSnapshot = await getDocs(cheaterQuery);
       

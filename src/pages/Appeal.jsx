@@ -27,7 +27,7 @@ const Appeal = () => {
     const cheaterQuery = query(
       cheatersRef, 
       where('username', '==', normalizedUsername),
-      where('markedForDeletion', '!=', true)
+      where('markedForDeletion', '==', false)
     );
     const cheaterSnapshot = await getDocs(cheaterQuery);
     

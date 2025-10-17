@@ -75,7 +75,7 @@ const AdminReports = () => {
     const existingCheaterQuery = query(
       cheatersRef, 
       where('username', '==', report.username.toLowerCase()),
-      where('markedForDeletion', '!=', true)
+      where('markedForDeletion', '==', false)
     );
     const existingCheaterSnapshot = await getDocs(existingCheaterQuery);
 
