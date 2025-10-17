@@ -3,6 +3,10 @@
       "chakra-ui": {
         "command": "npx",
         "args": ["-y", "@chakra-ui/react-mcp"]
+      },
+      "firebase": {
+        "command": "npx",
+        "args": ["-y", "firebase-tools@latest", "mcp"]
       }
     }
   }
