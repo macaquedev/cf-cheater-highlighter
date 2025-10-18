@@ -170,7 +170,7 @@ export async function findCheaterByUsername({ username }) {
   const q = query(
     cheatersRef, 
     where('username', '==', username),
-    where('markedForDeletion', '==', true)
+    where('markedForDeletion', '==', false)
   );
   const querySnapshot = await getDocs(q);
   if (!querySnapshot.empty) {
