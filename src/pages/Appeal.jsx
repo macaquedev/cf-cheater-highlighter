@@ -1,9 +1,10 @@
-import { Box, Heading, Text, Input, Button, VStack } from '@chakra-ui/react';
+import { Box, Heading, Text, Button, VStack } from '@chakra-ui/react';
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import CFVerifier from '../components/CFVerifier';
+import CfHandleSearch from '../components/CfHandleSearch';
 import { submitAppeal } from '../utils/cheaterUtils';
 
 const Appeal = () => {
@@ -139,11 +140,11 @@ const Appeal = () => {
           <VStack gap={4} align="stretch">
             <Box>
               <label htmlFor="appeal-username" style={{ color: 'inherit' }}>Codeforces Username</label>
-              <Input
+              <CfHandleSearch
                 id="appeal-username"
                 placeholder="Enter username (case-insensitive)"
                 value={appealUsername}
-                onChange={(e) => setAppealUsername(e.target.value)}
+                onChange={setAppealUsername}
                 required
                 mt={1}
                 borderColor="gray.300"

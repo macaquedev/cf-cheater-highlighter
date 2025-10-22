@@ -1,10 +1,12 @@
-import { Box, Heading, Text, Input, Button, VStack, Link } from '@chakra-ui/react';
+import { Box, Heading, Text, Button, VStack, Link } from '@chakra-ui/react';
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useAuth } from '../App';
 import { submitReport, validateCodeforcesUsername } from '../utils/cheaterUtils';
+import CfHandleSearch from '../components/CfHandleSearch';
+
 
 const ReportCheaters = () => {
   const { user } = useAuth();
@@ -13,8 +15,6 @@ const ReportCheaters = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [message, setMessage] = useState(null);
-
-
 
   // Auto-dismiss message after 15 seconds
   useEffect(() => {
@@ -56,7 +56,7 @@ const ReportCheaters = () => {
         where('username', '==', validation.normalizedUsername),
         where('markedForDeletion', '==', false)
       );
-      const cheaterSnapshot = await getDocs(cheaterQuery);
+      const cheaterSnapshot = getDocs(cheaterQuery);
       
       if (!cheaterSnapshot.empty) {
         setMessage({ 
@@ -225,15 +225,11 @@ const ReportCheaters = () => {
           <VStack gap={5} align="stretch">
             <Box>
               <label htmlFor="username" style={{ color: 'inherit' }}>Codeforces Username</label>
-              <Input
-                id="username"
-                placeholder="Enter username (case-insensitive)"
+              <CfHandleSearch
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={setUsername}
+                id="username"
                 required
-                mt={1}
-                borderColor="gray.300"
-                _dark={{ borderColor: "gray.400" }}
               />
             </Box>
             
@@ -264,4 +260,4 @@ const ReportCheaters = () => {
   );
 };
 
-export default ReportCheaters; 
+export default ReportCheaters;
