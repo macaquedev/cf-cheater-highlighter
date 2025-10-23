@@ -1,4 +1,5 @@
 import { Box, Heading, Text, Button, VStack, Link } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -212,7 +213,15 @@ const ReportCheaters = () => {
               <Text fontSize="md" fontWeight="semibold" mb={1}>Admin Notice</Text>
               <Text fontSize="sm">
                 You can review and manage reports in the{' '}
-                <Link to="/admin" color="blue.600" _dark={{ color: "blue.300" }} fontWeight="semibold" textDecoration="underline" _hover={{ color: 'blue.800', _dark: { color: 'blue.100' } }}>
+                <Link
+                  as={RouterLink}
+                  to="/admin"
+                  color="blue.600"
+                  _dark={{ color: "blue.300" }}
+                  fontWeight="semibold"
+                  textDecoration="underline"
+                  _hover={{ color: 'blue.800', _dark: { color: 'blue.100' } }}
+                >
                   Admin Panel
                 </Link>
                 .
