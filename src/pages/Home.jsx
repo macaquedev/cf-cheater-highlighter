@@ -67,7 +67,13 @@ function Home() {
               <Text color="gray.600" _dark={{ color: "gray.300" }} mb={6}>
                 Look up users to see if they have been reported for cheating
               </Text>
-              <Button colorPalette="blue" size="lg" as={Link} to="/search" w="full">
+              <Button
+                colorPalette="blue"
+                size="lg"
+                as={Link}
+                to={user ? "/admin/search" : "/search"}
+                w="full"
+              >
                 Search
               </Button>
             </Box>
