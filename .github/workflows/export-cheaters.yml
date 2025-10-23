@@ -9,8 +9,14 @@ jobs:
   export:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout only needed files
         uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            scripts/exportCheaters.js
+            package.json
+            package-lock.json
+            cheaters.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
