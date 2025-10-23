@@ -322,6 +322,7 @@ const AdminSearch = () => {
               onValueChange={(e) => setSortOption(e.value[0])}
               width="200px"
               size="lg"
+              disabled
             >
               <Select.HiddenSelect />
               <Select.Control>
