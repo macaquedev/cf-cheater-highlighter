@@ -1,0 +1,30 @@
+name: Update Cheater Info
+
+on:
+  schedule:
+  - cron: '0 23 * * 5'  # Every week at Friday 23:00 UTC (1 hour before Saturday 1am UTC)
+  workflow_dispatch:      # Allow manual runs
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Decode service account key
+        run: |
+          echo "${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}" | base64 -d > serviceAccountKey.json
+          echo "Service account key decoded and saved"
+
+      - name: Run update cheater info script
+        run: node scripts/updateCheaterInfo.js
