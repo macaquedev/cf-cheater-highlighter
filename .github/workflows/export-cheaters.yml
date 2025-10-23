@@ -24,8 +24,8 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install script dependencies
+        run: cd scripts && npm ci
 
       - name: Decode service account key
         run: |
@@ -33,7 +33,7 @@ jobs:
           echo "Service account key decoded and saved"
 
       - name: Run export script
-        run: node scripts/exportCheaters.js
+        run: cd scripts && node exportCheaters.js
 
       - name: Commit and push cheaters.json
         env:

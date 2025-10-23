@@ -1,6 +1,9 @@
-require('dotenv').config();
 const fs = require('fs');
+const path = require('path');
 const admin = require('firebase-admin');
+
+// Always use cheaters.json in project root
+const cheatersJsonPath = path.resolve(__dirname, '../cheaters.json');
 
 let serviceAccount;
 try {
@@ -27,10 +30,9 @@ async function exportCheaters() {
   try {
     // Read existing cheaters.json to get last export time
     let cheatersData = { cheaters: [], lastExportTime: null };
-    if (fs.existsSync('./cheaters.json')) {
+    if (fs.existsSync(cheatersJsonPath)) {
       try {
-        const existingData = JSON.parse(fs.readFileSync('./cheaters.json', 'utf8'));
-        
+        const existingData = JSON.parse(fs.readFileSync(cheatersJsonPath, 'utf8'));
         // Handle different possible data structures
         if (existingData.cheaters && Array.isArray(existingData.cheaters)) {
           // New format with cheaters array
@@ -134,7 +136,7 @@ async function exportCheaters() {
         cheaters: finalCheaters,
         lastExportTime: new Date().toISOString()
       };
-      fs.writeFileSync('./cheaters.json', JSON.stringify(updatedData, null, 2));
+      fs.writeFileSync(cheatersJsonPath, JSON.stringify(updatedData, null, 2));
       console.log(`\n✅ Export completed successfully!`);
       console.log(`📊 Total cheaters: ${finalCheaters.length}`);
       console.log(`💾 Data saved to cheaters.json`);

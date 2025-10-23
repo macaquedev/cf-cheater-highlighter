@@ -1,0 +1,9 @@
+{
+  "name": "cf-cheater-scripts",
+  "version": "1.0.0",
+  "description": "Minimal package.json for Node.js scripts",
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^13.5.0"
+  }
+}
