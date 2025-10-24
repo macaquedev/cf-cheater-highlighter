@@ -80,6 +80,8 @@ async function fetchUserInfo(handles) {
 // Helper function to process a single batch of cheaters
 async function processBatch(cheatersBatch, batchNumber) {
   console.log(`\n--- Processing Batch ${batchNumber} (${cheatersBatch.length} cheaters) ---`);
+
+  const batchTimestamp = new Date();
   
   // Extract usernames from this batch
   const usernames = cheatersBatch.map(cheater => cheater.username);
@@ -108,13 +110,14 @@ async function processBatch(cheatersBatch, batchNumber) {
     const cheaterRef = db.collection('cheaters').doc(cheater.id);
 
     if (userInfo && userInfo.userNotFound) {
-      // User was deleted from Codeforces, delete doc
-      batch.delete(cheaterRef);
+      // User was deleted from Codeforces, mark for deletion
+      batch.update(cheaterRef, {
+        markedForDeletion: true,
+        lastModified: batchTimestamp
+      });
       deleteCount++;
-      // console.log(`User not on Codeforces, deleting doc: ${username}`);
     } else if (userInfo) {
       const updateData = {};
-      
       // update info
       const newInfo = {
         currentRating: userInfo.rating || 0,
@@ -132,13 +135,11 @@ async function processBatch(cheatersBatch, batchNumber) {
       const newUsername = userInfo.handle.toLowerCase();
       if (newUsername !== username) {
         updateData.username = newUsername;
-        // console.log(`Username of ${username} changed to ${newUsername}`);
+        updateData.lastModified = batchTimestamp;
       }
 
       // only update if there are changes (to save writes)
       if (Object.keys(updateData).length !== 0) {
-        // Always add lastModified timestamp when updating
-        updateData.lastModified = new Date();
         batch.update(cheaterRef, updateData);
         updateCount++;
       }
