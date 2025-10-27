@@ -373,7 +373,7 @@ const AdminSearch = () => {
                       <Skeleton loading={tableLoading || isNavigating} height="24px">
                         <CfUser
                           username={cheater?.username}
-                          ratingInfo={cheater?.info}
+                          info={cheater?.info}
                         />
                       </Skeleton>
                     </Table.Cell>
