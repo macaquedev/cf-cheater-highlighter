@@ -23,7 +23,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // Codeforces API endpoint
-const CODEFORCES_API = 'https://codeforces.com/api/user.info';
+const USER_INFO_API = 'https://codeforces.com/api/user.info';
 const BATCH_SIZE = 500; // firestore max batch size
 
 /**
@@ -34,7 +34,7 @@ const BATCH_SIZE = 500; // firestore max batch size
 async function fetchUserInfo(handles) {
   if (!handles.length) return new Map();
   try {
-    const response = await fetch(`${CODEFORCES_API}?handles=${handles.join(';')}`);
+    const response = await fetch(`${USER_INFO_API}?handles=${handles.join(';')}`);
     const data = await response.json();
     if (data.status === 'OK') {
       // Map lowercase handle to user data
