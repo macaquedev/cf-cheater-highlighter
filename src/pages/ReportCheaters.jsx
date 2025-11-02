@@ -57,7 +57,7 @@ const ReportCheaters = () => {
         where('username', '==', validation.normalizedUsername),
         where('markedForDeletion', '==', false)
       );
-      const cheaterSnapshot = getDocs(cheaterQuery);
+      const cheaterSnapshot = await getDocs(cheaterQuery);
       
       if (!cheaterSnapshot.empty) {
         setMessage({ 
