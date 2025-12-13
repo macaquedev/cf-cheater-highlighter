@@ -38,49 +38,60 @@ const AdminAppeals = () => {
     }
   }, [user, navigate]);
 
-  // Use the Firebase hook data
+  // Use the Firebase hook data - fetch all admin notes once at start
   useEffect(() => {
     if (pendingAppealsSnapshot && !pendingAppealsLoading) {
       const fetchAppealsWithEvidence = async () => {
         setLoading(true);
-        const appealsData = [];
         
-        for (const appealDoc of pendingAppealsSnapshot.docs) {
-          const appeal = { id: appealDoc.id, ...appealDoc.data() };
-          // Skip declined appeals
-          if (appeal.status === 'declined') continue;
-          
-          // Fetch cheater evidence for this user
-          const cheaterQuery = query(
-            collection(db, 'cheaters'), 
-            where('username', '==', appeal.username),
-            where('markedForDeletion', '==', false)
-          );
-          const cheaterSnapshot = await getDocs(cheaterQuery);
-          if (!cheaterSnapshot.empty) {
-            const cheaterData = cheaterSnapshot.docs[0].data();
-            appeal.cheaterEvidence = cheaterData.evidence;
-            appeal.cheaterAdminNote = cheaterData.adminNote || null;
-          } else {
-            appeal.cheaterEvidence = null;
-            appeal.cheaterAdminNote = null;
-          }
-          appealsData.push(appeal);
-        }
+        // Filter out declined appeals first
+        const pendingAppeals = pendingAppealsSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(appeal => appeal.status !== 'declined');
         
-        setAppeals(appealsData);
-        // Reset current index if it's out of bounds
-        if (currentIndex >= appealsData.length && appealsData.length > 0) {
-          setCurrentIndex(0);
-        } else if (appealsData.length === 0) {
-          setCurrentIndex(0);
-        }
+        // Fetch all cheater data in parallel
+        const appealsWithEvidence = await Promise.all(
+          pendingAppeals.map(async (appeal) => {
+            const cheaterQuery = query(
+              collection(db, 'cheaters'), 
+              where('username', '==', appeal.username),
+              where('markedForDeletion', '==', false)
+            );
+            const cheaterSnapshot = await getDocs(cheaterQuery);
+            
+            if (!cheaterSnapshot.empty) {
+              const cheaterData = cheaterSnapshot.docs[0].data();
+              return {
+                ...appeal,
+                cheaterEvidence: cheaterData.evidence,
+                cheaterAdminNote: cheaterData.adminNote || null
+              };
+            } else {
+              return {
+                ...appeal,
+                cheaterEvidence: null,
+                cheaterAdminNote: null
+              };
+            }
+          })
+        );
+        
+        setAppeals(appealsWithEvidence);
         setLoading(false);
       };
       
       fetchAppealsWithEvidence();
     }
-  }, [pendingAppealsSnapshot, pendingAppealsLoading, currentIndex]);
+  }, [pendingAppealsSnapshot, pendingAppealsLoading]);
+
+  // Reset current index if it's out of bounds (separate effect)
+  useEffect(() => {
+    if (appeals.length > 0 && currentIndex >= appeals.length) {
+      setCurrentIndex(0);
+    } else if (appeals.length === 0) {
+      setCurrentIndex(0);
+    }
+  }, [appeals.length, currentIndex]);
 
   // Handle any errors from the Firebase hook
   useEffect(() => {
@@ -91,6 +102,18 @@ const AdminAppeals = () => {
   }, [pendingAppealsError]);
 
   const handleAcceptAppeal = async (appeal) => {
+    // Optimistically remove from UI immediately
+    setAppeals(prev => {
+      const updated = prev.filter(a => a.id !== appeal.id);
+      // Adjust index if needed
+      if (currentIndex >= updated.length && updated.length > 0) {
+        setCurrentIndex(Math.max(0, updated.length - 1));
+      } else if (updated.length === 0) {
+        setCurrentIndex(0);
+      }
+      return updated;
+    });
+    
     // Find and delete the cheater using the utility function
     const cheaterQuery = query(
       collection(db, 'cheaters'), 
@@ -104,16 +127,28 @@ const AdminAppeals = () => {
     }
     await deleteDoc(doc(db, 'appeals', appeal.id));
     setMessage({ type: 'success', text: 'Appeal accepted and user completely removed from cheaters.' });
-    // No need to manually update state - the Firebase hook will automatically update the data
+    // Firebase hook will sync in background, but UI already updated
   };
 
   const handleDeclineAppeal = async (appeal) => {
+    // Optimistically remove from UI immediately
+    setAppeals(prev => {
+      const updated = prev.filter(a => a.id !== appeal.id);
+      // Adjust index if needed
+      if (currentIndex >= updated.length && updated.length > 0) {
+        setCurrentIndex(Math.max(0, updated.length - 1));
+      } else if (updated.length === 0) {
+        setCurrentIndex(0);
+      }
+      return updated;
+    });
+    
     await updateDoc(doc(db, 'appeals', appeal.id), { 
       status: 'declined',
       lastModified: new Date()
     });
     setMessage({ type: 'info', text: 'Appeal declined.' });
-    // No need to manually update state - the Firebase hook will automatically update the data
+    // Firebase hook will sync in background, but UI already updated
   };
 
   const handleAcceptAppealWithLoading = (appeal) => {
