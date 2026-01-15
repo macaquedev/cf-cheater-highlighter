@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Box, Button, Input, Heading, Text, HStack, VStack, Table, Dialog, Portal, Skeleton, Select, createListCollection } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -12,27 +12,32 @@ import CfUser from '../components/CfUser';
 const PAGE_SIZE = 20;
 const THROTTLE_DELAY = 100; // Consistent delay between key presses
 
-// Sort options for the dropdown
-const SORT_OPTIONS = [
-  { value: 'reportedAtDesc', label: 'Newest First' },
-  { value: 'reportedAtAsc', label: 'Oldest First' },
-  { value: 'usernameAsc', label: 'Username A-Z' },
-  { value: 'usernameDesc', label: 'Username Z-A' },
+// Expandable sorting configuration
+// To add new sort fields, simply add entries to SORT_FIELDS
+const SORT_FIELDS = [
+  { value: 'reportedAt', label: 'Date Reported' },
+  { value: 'rating', label: 'Rating' },
+  { value: 'maxRating', label: 'Max Rating' },
+  { value: 'username', label: 'Username' },
 ];
 
 // Create collection for Select component
-const sortCollection = createListCollection({
-  items: SORT_OPTIONS,
+const sortFieldCollection = createListCollection({
+  items: SORT_FIELDS,
   itemToString: (item) => item.label,
   itemToValue: (item) => item.value,
 });
+
+// Note: Sorting is now done server-side via Firestore orderBy queries
+// See getSortConfig() in src/utils/searchUtils.js for sort field mapping
 
 const AdminSearch = () => {
   const { user } = useAuth();
   const [allCheaters, setAllCheaters] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState('reportedAtDesc');
+  const [sortField, setSortField] = useState('reportedAt');
+  const [sortDirection, setSortDirection] = useState('desc');
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedCheater, setSelectedCheater] = useState(null);
 
@@ -138,32 +143,36 @@ const AdminSearch = () => {
     }
   }, [tableLoading, isNavigating]);
 
-  // Fetch cheaters on mount and when user/searchTerm changes
+  // Combine sortField and sortDirection into sortOption for backend
+  const sortOption = useMemo(() => `${sortField}${sortDirection.charAt(0).toUpperCase() + sortDirection.slice(1)}`, [sortField, sortDirection]);
+
+  // Fetch cheaters on mount and when user/searchTerm/sortField/sortDirection changes
   useEffect(() => {
     if (user) {
-      setCurrentPage(1); // Reset to first page when search changes
-      fetchCheaters(searchTerm);
-      fetchTotalCheaters(searchTerm); // Always fetch count
+      setCurrentPage(1); // Reset to first page when search or sort changes
+      setPageCursors({}); // Reset page cursors when search or sort changes
+      fetchCheaters(searchTerm, sortOption);
+      fetchTotalCheaters(searchTerm);
     }
     // eslint-disable-next-line
-  }, [user, searchTerm]);
-
+  }, [user, searchTerm, sortOption]);
 
   // Refetch data when currentPage changes
   useEffect(() => {
     if (user) {
-      fetchCheaters(searchTerm);
+      fetchCheaters(searchTerm, sortOption);
     }
     // eslint-disable-next-line
   }, [currentPage]);
 
-  // Fetch cheaters with page-based pagination and caching
-  const fetchCheaters = async (search = '') => {
+  // Fetch cheaters with server-side pagination and sorting
+  const fetchCheaters = async (search = '', sort = 'reportedAtDesc') => {
     setTableLoading(true);
     try {
       const { cheaters, lastVisible } = await fetchPageData({
         currentPage,
         search,
+        sortOption: sort,
         pageSize: PAGE_SIZE,
         pageCursors,
       });
@@ -317,20 +326,22 @@ const AdminSearch = () => {
               flex="1"
             />
             <Select.Root
-              collection={sortCollection}
-              value={[sortOption]}
-              onValueChange={(e) => setSortOption(e.value[0])}
-              width="200px"
+              collection={sortFieldCollection}
+              value={[sortField]}
+              onValueChange={(e) => {
+                setSortField(e.value[0]);
+                setCurrentPage(1); // Reset to first page when sort changes
+              }}
+              width="180px"
               size="lg"
-              disabled
+              disabled={!!searchTerm.trim()}
             >
               <Select.HiddenSelect />
               <Select.Control>
                 <Select.Trigger height="48px">
                   <Select.ValueText>
-                    {sortCollection.items.find(opt => opt.value === sortOption)?.label}
+                    {sortFieldCollection.items.find(opt => opt.value === sortField)?.label}
                   </Select.ValueText>
-                  {/* <Select.ValueText placeholder="Sort by..." /> */}
                 </Select.Trigger>
                 <Select.IndicatorGroup>
                   <Select.Indicator />
@@ -339,7 +350,7 @@ const AdminSearch = () => {
               <Portal>
                 <Select.Positioner>
                   <Select.Content>
-                    {sortCollection.items.map((option) => (
+                    {sortFieldCollection.items.map((option) => (
                       <Select.Item item={option} key={option.value}>
                         {option.label}
                         <Select.ItemIndicator />
@@ -349,6 +360,19 @@ const AdminSearch = () => {
                 </Select.Positioner>
               </Portal>
             </Select.Root>
+            <Button
+              onClick={() => {
+                setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                setCurrentPage(1); // Reset to first page when direction changes
+              }}
+              size="lg"
+              height="48px"
+              width="80px"
+              disabled={!!searchTerm.trim()}
+              variant="outline"
+            >
+              {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
+            </Button>
           </HStack>
         </Box>
         {allCheaters.length === 0 && !tableLoading ? (

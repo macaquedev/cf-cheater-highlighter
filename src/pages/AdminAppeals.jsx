@@ -102,18 +102,6 @@ const AdminAppeals = () => {
   }, [pendingAppealsError]);
 
   const handleAcceptAppeal = async (appeal) => {
-    // Optimistically remove from UI immediately
-    setAppeals(prev => {
-      const updated = prev.filter(a => a.id !== appeal.id);
-      // Adjust index if needed
-      if (currentIndex >= updated.length && updated.length > 0) {
-        setCurrentIndex(Math.max(0, updated.length - 1));
-      } else if (updated.length === 0) {
-        setCurrentIndex(0);
-      }
-      return updated;
-    });
-    
     // Find and delete the cheater using the utility function
     const cheaterQuery = query(
       collection(db, 'cheaters'), 
@@ -127,28 +115,16 @@ const AdminAppeals = () => {
     }
     await deleteDoc(doc(db, 'appeals', appeal.id));
     setMessage({ type: 'success', text: 'Appeal accepted and user completely removed from cheaters.' });
-    // Firebase hook will sync in background, but UI already updated
+    // No need to manually update state - the Firebase hook will automatically update the data
   };
 
   const handleDeclineAppeal = async (appeal) => {
-    // Optimistically remove from UI immediately
-    setAppeals(prev => {
-      const updated = prev.filter(a => a.id !== appeal.id);
-      // Adjust index if needed
-      if (currentIndex >= updated.length && updated.length > 0) {
-        setCurrentIndex(Math.max(0, updated.length - 1));
-      } else if (updated.length === 0) {
-        setCurrentIndex(0);
-      }
-      return updated;
-    });
-    
     await updateDoc(doc(db, 'appeals', appeal.id), { 
       status: 'declined',
       lastModified: new Date()
     });
     setMessage({ type: 'info', text: 'Appeal declined.' });
-    // Firebase hook will sync in background, but UI already updated
+    // No need to manually update state - the Firebase hook will automatically update the data
   };
 
   const handleAcceptAppealWithLoading = (appeal) => {

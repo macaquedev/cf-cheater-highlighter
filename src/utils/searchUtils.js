@@ -2,18 +2,50 @@ import { db } from '../firebase';
 import { collection, getDocs, query, where, getCountFromServer, orderBy, startAfter, limit } from 'firebase/firestore';
 
 /**
+ * Map sort option to Firestore orderBy field and direction
+ * @param {string} sortOption - The sort option value (e.g., "reportedAtDesc", "ratingAsc")
+ * @returns {{field: string, direction: 'asc'|'desc'}}
+ */
+function getSortConfig(sortOption) {
+  // Extract field and direction from sortOption (format: "fieldNameDirection")
+  // e.g., "reportedAtDesc" -> { field: 'reportedAt', direction: 'desc' }
+  const match = sortOption.match(/^(.+?)(Asc|Desc)$/);
+  if (!match) {
+    return { field: 'reportedAt', direction: 'desc' };
+  }
+  
+  const [, fieldName, direction] = match;
+  const directionLower = direction.toLowerCase();
+  
+  // Map field names to Firestore field paths
+  const fieldMap = {
+    'reportedAt': 'reportedAt',
+    'rating': 'info.currentRating',
+    'maxRating': 'info.maxRating',
+    'username': 'username',
+  };
+  
+  const field = fieldMap[fieldName] || 'reportedAt';
+  const dir = (directionLower === 'asc' || directionLower === 'desc') ? directionLower : 'desc';
+  
+  return { field, direction: dir };
+}
+
+/**
  * Pure fetcher: fetch a page of cheaters for a search term.
  * @param {Object} params
  * @param {number} params.currentPage
  * @param {string} params.search
+ * @param {string} params.sortOption - Sort option (only used when search is empty)
  * @param {number} params.pageSize
  * @param {Record<number, any>} params.pageCursors
  * @returns {Promise<{ cheaters: Array, lastVisible: object|null }>}
  */
-export async function fetchPageData({ currentPage, search = '', pageSize = 20, pageCursors = {} }) {
+export async function fetchPageData({ currentPage, search = '', sortOption = 'reportedAtDesc', pageSize = 20, pageCursors = {} }) {
   let cheatersRef = collection(db, 'cheaters');
   let q;
   if (search) {
+    // When searching, always sort by username
     q = query(
       cheatersRef,
       where('markedForDeletion', '==', false),
@@ -23,10 +55,12 @@ export async function fetchPageData({ currentPage, search = '', pageSize = 20, p
       limit(pageSize)
     );
   } else {
+    // When search is empty, use the selected sort option
+    const sortConfig = getSortConfig(sortOption);
     q = query(
       cheatersRef,
       where('markedForDeletion', '==', false),
-      orderBy('reportedAt', 'desc'),
+      orderBy(sortConfig.field, sortConfig.direction),
       limit(pageSize)
     );
   }
