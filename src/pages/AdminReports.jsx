@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Box, Button, Heading, VStack, Text, Flex
+  Box, Button, Heading, VStack, Text, Flex, Input
 } from '@chakra-ui/react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -18,6 +18,7 @@ const AdminReports = () => {
   const [message, setMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [adminNote, setAdminNote] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   // Firebase hooks for real-time updates
@@ -49,14 +50,19 @@ const AdminReports = () => {
         reports.push({ id: doc.id, ...doc.data() });
       });
       setPendingReports(reports);
+    }
+  }, [pendingReportsSnapshot, pendingReportsLoading]);
+
+  useEffect(() => {
+    if (pendingReports) {
       // Reset current index if it's out of bounds
-      if (currentIndex >= reports.length && reports.length > 0) {
+      if (currentIndex >= pendingReports.length && pendingReports.length > 0) {
         setCurrentIndex(0);
-      } else if (reports.length === 0) {
+      } else if (pendingReports.length === 0) {
         setCurrentIndex(0);
       }
     }
-  }, [pendingReportsSnapshot, pendingReportsLoading, currentIndex]);
+  }, [pendingReports, currentIndex]);
 
   // Handle any errors from the Firebase hook
   useEffect(() => {
@@ -66,8 +72,32 @@ const AdminReports = () => {
     }
   }, [pendingReportsError]);
 
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchTerm]);
+
+  // Filter reports by username (client-side)
+  const filteredReports = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return pendingReports;
+    }
+    const searchLower = searchTerm.toLowerCase();
+    return pendingReports.filter(report => 
+      report.username?.toLowerCase().includes(searchLower)
+    );
+  }, [pendingReports, searchTerm]);
+
+  // Reset current index when filtered results change
+  useEffect(() => {
+    if (currentIndex >= filteredReports.length && filteredReports.length > 0) {
+      setCurrentIndex(0);
+    } else if (filteredReports.length === 0) {
+      setCurrentIndex(0);
+    }
+  }, [filteredReports.length, currentIndex]);
+
   const handleAccept = useCallback(async () => {
-    const report = pendingReports[currentIndex];
+    const report = filteredReports[currentIndex];
     if (!report) return;
     
     // Check if user is already marked as a cheater
@@ -91,17 +121,17 @@ const AdminReports = () => {
     setMessage({ type: 'success', text: messageText });
     setAdminNote('');
     // No need to manually refresh - the Firebase hook will automatically update the data
-  }, [pendingReports, currentIndex, adminNote, user]);
+  }, [filteredReports, currentIndex, adminNote, user]);
 
   const handleDecline = useCallback(async () => {
-    const report = pendingReports[currentIndex];
+    const report = filteredReports[currentIndex];
     if (!report) return;
 
     await deleteDoc(doc(db, 'reports', report.id));
     setMessage({ type: 'info', text: 'Report declined.' });
     setAdminNote(''); // Clear admin note after declining
     // No need to manually refresh - the Firebase hook will automatically update the data
-  }, [pendingReports, currentIndex]);
+  }, [filteredReports, currentIndex]);
 
   const handleAcceptWithLoading = useCallback(() => {
     withLoading('accept', handleAccept);
@@ -118,15 +148,15 @@ const AdminReports = () => {
   };
   
   const handleNext = () => {
-    console.log('Next clicked, current index:', currentIndex, 'total reports:', pendingReports.length); // Debug log
-    setCurrentIndex((i) => Math.min(i + 1, pendingReports.length - 1));
+    console.log('Next clicked, current index:', currentIndex, 'total reports:', filteredReports.length); // Debug log
+    setCurrentIndex((i) => Math.min(i + 1, filteredReports.length - 1));
     setAdminNote(''); // Reset admin note when navigating
   };
 
   // Add keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (!user || pendingReports.length === 0) return;
+      if (!user || filteredReports.length === 0) return;
       
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
@@ -149,7 +179,7 @@ const AdminReports = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [user, pendingReports.length, actionLoading, handleAcceptWithLoading, handleDeclineWithLoading]);
+  }, [user, filteredReports.length, pendingReports.length, actionLoading, handleAcceptWithLoading, handleDeclineWithLoading]);
 
   // Show loading while checking authentication
   if (!user) {
@@ -245,96 +275,141 @@ const AdminReports = () => {
             </VStack>
           ) : (
             <VStack gap={6} align="stretch">
-              <Flex align="center" justify="space-between">
-                <Button
-                  onClick={handlePrev}
-                  disabled={currentIndex === 0}
-                  variant="ghost"
-                  size="sm"
-                >
-                  ← Previous
-                </Button>
-                <Text fontWeight="bold">
-                  Report {currentIndex + 1} of {pendingReports.length}
-                </Text>
-                <Button
-                  onClick={handleNext}
-                  disabled={currentIndex === pendingReports.length - 1}
-                  variant="ghost"
-                  size="sm"
-                >
-                  Next →
-                </Button>
-              </Flex>
-              <Box borderWidth={1} borderRadius="md" p={6} shadow="sm" bg="gray.50" _dark={{ bg: "gray.700" }}>
-                <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
-                  Username:
-                </Text>
-                <Text mb={4}>
-                  <a
-                    href={`https://codeforces.com/profile/${pendingReports[currentIndex]?.username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: '#3182ce', textDecoration: 'underline' }}
-                  >
-                    {pendingReports[currentIndex]?.username}
-                  </a>
-                </Text>
-                <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
-                  Evidence:
-                </Text>
-                <Box
-                  mb={4}
-                  p={4}
-                  bg="white"
-                  borderRadius="md"
-                  borderWidth={1}
-                  borderColor="gray.200"
-                  _dark={{ 
-                    bg: "gray.600",
-                    borderColor: "gray.500" 
+              <Box>
+                <Input
+                  placeholder="Search by username..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentIndex(0); // Reset to first result when search changes
                   }}
-                  minH="100px"
-                  maxH="300px"
-                  overflowY="auto"
-                >
-                  <MarkdownRenderer>{pendingReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
-                </Box>
-                
-                <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
-                  Admin Note (Optional):
-                </Text>
-                <Box mb={4} p={4} bg="white" borderRadius="md" borderWidth={1} borderColor="gray.200" _dark={{ bg: "gray.700", borderColor: "gray.600" }}>
-                  <Box mt={-2}>
-                    <MarkdownEditor
-                      value={adminNote}
-                      onChange={setAdminNote}
-                      placeholder="Add any additional notes or context for this report..."
-                      rows={3}
-                    />
-                  </Box>
-                </Box>
-                <Flex gap={4}>
-                  <Button 
-                    colorPalette="green" 
-                    onClick={handleAcceptWithLoading} 
-                    loading={actionLoading === 'accept'} 
-                    loadingText="Processing..."
-                    disabled={actionLoading !== null}
-                  >
-                    Add to Database
-                  </Button>
-                  <Button 
-                    colorPalette="red" 
-                    onClick={handleDeclineWithLoading} 
-                    loading={actionLoading === 'decline'} 
-                    loadingText="Processing..."
-                    disabled={actionLoading !== null}
-                  >
-                    Decline Report
-                  </Button>
-                </Flex>
+                  mb={4}
+                  bg="gray.100"
+                  borderColor="gray.400"
+                  borderWidth={2}
+                  _dark={{
+                    bg: "gray.700",
+                    borderColor: "gray.500"
+                  }}
+                  _focus={{
+                    bg: "gray.200",
+                    borderColor: "blue.500",
+                    _dark: {
+                      bg: "gray.600",
+                      borderColor: "blue.400"
+                    }
+                  }}
+                />
+                {searchTerm && (
+                  <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }}>
+                    Showing {filteredReports.length} of {pendingReports.length} report(s)
+                  </Text>
+                )}
               </Box>
+              
+              {filteredReports.length === 0 ? (
+                <VStack gap={4} align="center" py={8}>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700" _dark={{ color: "gray.200" }}>
+                    No matching reports found
+                  </Text>
+                  <Text color="gray.500" _dark={{ color: "gray.400" }}>
+                    Try adjusting your search term.
+                  </Text>
+                </VStack>
+              ) : (
+                <>
+                  <Flex align="center" justify="space-between">
+                    <Button
+                      onClick={handlePrev}
+                      disabled={currentIndex === 0}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      ← Previous
+                    </Button>
+                    <Text fontWeight="bold">
+                      Report {currentIndex + 1} of {filteredReports.length}
+                    </Text>
+                    <Button
+                      onClick={handleNext}
+                      disabled={currentIndex === filteredReports.length - 1}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Next →
+                    </Button>
+                  </Flex>
+                  <Box borderWidth={1} borderRadius="md" p={6} shadow="sm" bg="gray.50" _dark={{ bg: "gray.700" }}>
+                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                      Username:
+                    </Text>
+                    <Text mb={4}>
+                      <a
+                        href={`https://codeforces.com/profile/${filteredReports[currentIndex]?.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#3182ce', textDecoration: 'underline' }}
+                      >
+                        {filteredReports[currentIndex]?.username}
+                      </a>
+                    </Text>
+                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                      Evidence:
+                    </Text>
+                    <Box
+                      mb={4}
+                      p={4}
+                      bg="white"
+                      borderRadius="md"
+                      borderWidth={1}
+                      borderColor="gray.200"
+                      _dark={{ 
+                        bg: "gray.600",
+                        borderColor: "gray.500" 
+                      }}
+                      minH="100px"
+                      maxH="300px"
+                      overflowY="auto"
+                    >
+                      <MarkdownRenderer>{filteredReports[currentIndex]?.evidence || ''}</MarkdownRenderer>
+                    </Box>
+                    
+                    <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
+                      Admin Note (Optional):
+                    </Text>
+                    <Box mb={4} p={4} bg="white" borderRadius="md" borderWidth={1} borderColor="gray.200" _dark={{ bg: "gray.700", borderColor: "gray.600" }}>
+                      <Box mt={-2}>
+                        <MarkdownEditor
+                          value={adminNote}
+                          onChange={setAdminNote}
+                          placeholder="Add any additional notes or context for this report..."
+                          rows={3}
+                        />
+                      </Box>
+                    </Box>
+                    <Flex gap={4}>
+                      <Button 
+                        colorPalette="green" 
+                        onClick={handleAcceptWithLoading} 
+                        loading={actionLoading === 'accept'} 
+                        loadingText="Processing..."
+                        disabled={actionLoading !== null}
+                      >
+                        Add to Database
+                      </Button>
+                      <Button 
+                        colorPalette="red" 
+                        onClick={handleDeclineWithLoading} 
+                        loading={actionLoading === 'decline'} 
+                        loadingText="Processing..."
+                        disabled={actionLoading !== null}
+                      >
+                        Decline Report
+                      </Button>
+                    </Flex>
+                  </Box>
+                </>
+              )}
             </VStack>
           )}
         </Box>
