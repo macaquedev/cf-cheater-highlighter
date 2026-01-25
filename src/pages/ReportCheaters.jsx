@@ -91,8 +91,17 @@ const ReportCheaters = () => {
       setIsChecking(false);
       setIsSubmitting(true);
       
+      // Extract info from userInfo (same structure as in updateCheaterInfo.js)
+      const userInfo = validation.userInfo;
+      const info = userInfo ? {
+        currentRating: userInfo.rating || 0,
+        maxRating: userInfo.maxRating || 0,
+        currentRank: userInfo.rank || 'unrated',
+        maxRank: userInfo.maxRank || 'unrated'
+      } : null;
+      
       // Submit the new report
-      await submitReport({ username: validation.normalizedUsername, evidence });
+      await submitReport({ username: validation.normalizedUsername, evidence, info });
       setMessage({ type: 'success', text: `User "${username}" has been reported successfully!` });
       setUsername('');
       setEvidence('');

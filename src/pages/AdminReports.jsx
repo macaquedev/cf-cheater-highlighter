@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import { collection, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import MarkdownEditor from '../components/MarkdownEditor';
+import CfUser from '../components/CfUser';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { addCheaterToDatabase } from '../utils/cheaterUtils';
@@ -343,16 +344,12 @@ const AdminReports = () => {
                     <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
                       Username:
                     </Text>
-                    <Text mb={4}>
-                      <a
-                        href={`https://codeforces.com/profile/${filteredReports[currentIndex]?.username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#3182ce', textDecoration: 'underline' }}
-                      >
-                        {filteredReports[currentIndex]?.username}
-                      </a>
-                    </Text>
+                    <Box mb={4}>
+                      <CfUser 
+                        username={filteredReports[currentIndex]?.username}
+                        info={filteredReports[currentIndex]?.info}
+                      />
+                    </Box>
                     <Text fontWeight="bold" mb={2} color="blue.700" _dark={{ color: "blue.300" }}>
                       Evidence:
                     </Text>
