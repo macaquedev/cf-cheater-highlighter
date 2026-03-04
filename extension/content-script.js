@@ -1,5 +1,3 @@
-const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheaters.json';
-
 (async () => {
   // Highlight cheaters
   function markCheaters(cheaterSet) {
@@ -30,9 +28,11 @@ const cheaterLink = 'https://macaquedev.github.io/cf-cheater-highlighter/cheater
 
   async function getCheaterData() {
     try {
-      const resp = await fetch(cheaterLink);
-      const data = await resp.json();
-      data.cheaters = (data.cheaters || []).map(u => u.toLowerCase());
+      const resp = await chrome.runtime.sendMessage({ type: 'fetchCheaters' });
+      const data = resp?.data;
+      if (data) {
+        data.cheaters = (data.cheaters || []).map(u => u.toLowerCase());
+      }
       return data;
     } catch (e) {
       return null;

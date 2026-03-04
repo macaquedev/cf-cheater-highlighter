@@ -7,17 +7,34 @@
   "host_permissions": [
     "https://macaquedev.github.io/cf-cheater-highlighter/*"
   ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
+  },
   "content_scripts": [
     {
-      "matches": ["https://codeforces.com/*"],
-      "js": ["content-script.js"],
-      "css": ["styles.css"]
+      "matches": [
+        "https://codeforces.com/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
     }
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "{27fc8722-82bf-4cbe-81da-90dd13fb5b01}", 
-      "strict_min_version": "109.0"
+      "id": "{c044f723-1a1d-496c-a748-3646563acdd3}",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
     }
   }
 }
