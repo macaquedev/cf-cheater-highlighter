@@ -133,7 +133,7 @@ const Appeal = () => {
             color: appealStatus.type === 'success' ? 'green.200' : 'red.200',
             borderColor: appealStatus.type === 'success' ? 'green.700' : 'red.700'
           }}>
-            <Text dangerouslySetInnerHTML={{__html: appealStatus.text}}></Text>
+            <Text>{appealStatus.text}</Text>
           </Box>
         )}
         <form onSubmit={handleSubmit}>
